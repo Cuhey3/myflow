@@ -6,6 +6,7 @@ class Endpoints:
             self.endpoints_dict = {}
 
         def put_endpoint(self, endpoint_name, producer):
+            assert endpoint_name not in self.endpoints_dict, 'route: ' + endpoint_name + ' is already exist.'
             self.endpoints_dict[endpoint_name] = producer
 
         def get_endpoint(self, endpoint_name):

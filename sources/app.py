@@ -1,7 +1,9 @@
 import asyncio
-from producer import Producer, Route
+from producer import *
 from endpoints import Endpoints
 from exchange import Exchange
+from components import *
+from expression import *
 
 
 def foo(string):
@@ -17,26 +19,32 @@ def ppp(exchange):
     print(exchange.get_body())
 
 
-def body(exchange):
-    return exchange.get_body()
-
-
 def predicate(exchange):
     return True
 
-(Route('myroute').to(foo('bar')).to(foo('wao')).when([
-        (predicate, Producer(foo('poko')).to(foo('pai'))),
-        (False, Producer(foo('pen')).to(foo('pee')).when([
-            (False, Producer(foo('nyao'))),
-            (False, Producer(foo('passo')))]))
+(RouteId('myroute').to(foo('bar')).to(foo('wao')).when([
+        (predicate, To(foo('poko')).to(foo('pai'))),
+        (False, To(foo('pen')).to(foo('pee')).when([
+            (False, To(foo('nyao'))),
+            (False, To(foo('passo')))]))
         ])
     .to(foo('final'))
+    .to(log({}))
     .filter(True)
     .to(foo('papaiya'))
-    .split(body, Producer(ppp))
+    #.split(body, To(ppp))
 ) #yapf:disable
 
-exchange = Endpoints().send_to('myroute', Exchange("foo"))
+RouteId('myfoo').to(cache({
+    'to': 'myroute',
+    'keys': [header('pon.puu')]
+})).to(direct({
+    'to': 'myroute'
+}))
 
+#yapf:disable
+exchange = Endpoints().send_to('myfoo',Exchange("poko",{'foo': 'bar','pon': {'puu': 'poo'}}))
+exchange = Endpoints().send_to('myfoo',Exchange("poko",{'foo': 'bar','pon': {'puu': 'poo'}}))
+#yapf:enable
 if exchange:
     print(exchange.get_body())

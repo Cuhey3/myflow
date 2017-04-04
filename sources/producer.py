@@ -45,8 +45,16 @@ class Producer():
         return exchange
 
 
-class Route(Producer):
+class RouteId(Producer):
     def __init__(self, route_id):
         super().__init__()
         from endpoints import Endpoints
         Endpoints().put_endpoint(route_id, self)
+
+
+class To(Producer):
+    def __init__(self, processor):
+        self.previous_producer = None
+        self.next_producer = None
+        self.processor = processor
+        self.custom_processor = []

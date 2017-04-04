@@ -1,7 +1,7 @@
 class Exchange:
     def __init__(self, body={}, header={}):
         self.body = body
-        assert (isinstance(header, dict))
+        assert isinstance(header, dict), 'exchange header must be dict.'
         self.header = header
 
     def get_body(self):
