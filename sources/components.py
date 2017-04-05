@@ -4,15 +4,15 @@ from endpoints import Endpoints
 def direct(params={}):
     endpoint_to = params.get('to')
 
-    def processor(exchange):
-        Endpoints().send_to(endpoint_to, exchange)
+    async def processor(exchange):
+        exchange = await Endpoints().send_to(endpoint_to, exchange)
         return exchange
 
     return processor
 
 
 def log(params={}):
-    def processor(exchange):
+    async def processor(exchange):
         if params.get('body', True):
             print('log', 'exchange:body', exchange.get_body())
         if params.get('header', False):
@@ -31,7 +31,7 @@ def cache(params):
     keys_expression = params.get('keys')
     assert isinstance(keys_expression, list), 'keys parameter must be list.'
 
-    def process(exchange):
+    async def process(exchange):
         from util import expression_to_value
         cache_key = hashkey(
             tuple(expression_to_value(keys_expression, exchange)))
@@ -39,7 +39,7 @@ def cache(params):
             exchange.set_body(cache_object.get(cache_key))
             print('cache loaded', cache_key)
         else:
-            exchange = Endpoints().send_to(to, exchange)
+            exchange = await Endpoints().send_to(to, exchange)
             cache_object[cache_key] = exchange.get_body()
             print('cache saved', cache_key)
         return exchange

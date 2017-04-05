@@ -7,7 +7,7 @@ from expression import *
 
 
 def foo(string):
-    def process(exchange):
+    async def process(exchange):
         assert (isinstance(exchange.get_body(), str))
         exchange.set_body(exchange.get_body() + ' ' + string)
         return exchange
@@ -15,7 +15,7 @@ def foo(string):
     return process
 
 
-def ppp(exchange):
+async def ppp(exchange):
     print(exchange.get_body())
 
 
@@ -40,11 +40,24 @@ RouteId('myfoo').to(cache({
     'keys': [header('pon.puu')]
 })).to(direct({
     'to': 'myroute'
-}))
+})).split(body(), To(ppp))
 
+
+async def tasks_main():
+    #yapf:disable
+    exchange = await Endpoints().send_to('myfoo',Exchange("poko",{'foo': 'bar','pon': {'puu': 'poo'}}))
+    exchange = await Endpoints().send_to('myfoo',Exchange("poko",{'foo': 'bar','pon': {'puu': 'poo'}}))
+    #yapf:enable
+    if exchange:
+        print(exchange.get_body())
+
+
+asyncio.get_event_loop().run_until_complete(tasks_main())
+'''
 #yapf:disable
 exchange = Endpoints().send_to('myfoo',Exchange("poko",{'foo': 'bar','pon': {'puu': 'poo'}}))
 exchange = Endpoints().send_to('myfoo',Exchange("poko",{'foo': 'bar','pon': {'puu': 'poo'}}))
 #yapf:enable
 if exchange:
     print(exchange.get_body())
+'''

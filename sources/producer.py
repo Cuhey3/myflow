@@ -31,17 +31,17 @@ class Producer():
         else:
             return self
 
-    def produce(self, exchange):
+    async def produce(self, exchange):
         if exchange and self.processor:
-            exchange = self.processor(exchange)
+            exchange = await self.processor(exchange)
         if exchange:
             for processor in self.custom_processor:
-                exchange = processor.process(exchange)
+                exchange = await processor.process(exchange)
                 if not exchange:
                     break
             if exchange:
                 if self.next_producer:
-                    exchange = self.next_producer.produce(exchange)
+                    exchange = await self.next_producer.produce(exchange)
         return exchange
 
 
