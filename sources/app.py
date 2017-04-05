@@ -50,10 +50,11 @@ def gather_func(exchanges):
 
 
 RouteId('gather_a').to(foo('bon'))
-RouteId('gather_b').to(foo('poyo'))
 RouteId('gathering').gather([To(direct({
     'to': 'gather_a'
 })), To(foo('poyo'))], gather_func)
+
+Timer({'repeatCount': 3}).to(log({}))
 
 
 async def tasks_main():
@@ -70,6 +71,7 @@ async def tasks_main():
 
 
 asyncio.get_event_loop().run_until_complete(tasks_main())
+asyncio.get_event_loop().run_forever()
 '''
 #yapf:disable
 exchange = Endpoints().send_to('myfoo',Exchange("poko",{'foo': 'bar','pon': {'puu': 'poo'}}))

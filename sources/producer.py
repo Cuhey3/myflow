@@ -62,3 +62,25 @@ class To(Producer):
         self.next_producer = None
         self.processor = processor
         self.custom_processor = []
+
+
+class Timer(Producer):
+    def __init__(self, timer_param):
+        self.previous_producer = None
+        self.next_producer = None
+        self.processor = None
+        self.custom_processor = []
+        from timer_core import TimerCore
+        timer_core = TimerCore(timer_param)
+        if timer_core.isEnable():
+            from exchange import Exchange
+            import asyncio
+            loop = asyncio.get_event_loop()
+
+            async def process(exchange):
+                await timer_core.initialDelay()
+                loop.create_task(self.produce(exchange))
+                async for t in timer_core:
+                    loop.create_task(self.produce(exchange))
+
+            loop.create_task(process(Exchange(None, {})))
