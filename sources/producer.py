@@ -25,6 +25,10 @@ class Producer():
         self.custom_processor.append(SplitProcessor(expression, producer))
         return self
 
+    def gather(self, processors, gather_func):
+        self.custom_processor.append(GatherProcessor(processors, gather_func))
+        return self
+
     def first_producer(self):
         if self.previous_producer:
             return self.previous_producer.first_producer()

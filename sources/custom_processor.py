@@ -67,5 +67,21 @@ class SplitProcessor():
         return None
 
 
+class GatherProcessor():
+    def __init__(self, producers, gather_func):
+        assert isinstance(producers, list), 'gathering producers must be list.' #yapf: disable
+        async def gather_processor(exchange):
+            import copy
+            coroutines = map(lambda producer: producer.first_producer().produce(copy.deepcopy(exchange)), producers)
+            import asyncio
+            gathered = await asyncio.gather(*coroutines)
+            return gather_func(gathered)
+
+        self.gather_processor = gather_processor
+
+    async def process(self, exchange):
+        return await self.gather_processor(exchange)
+
+
 # TBD:routingSlip
 # class RoutingSlipProcessor():
