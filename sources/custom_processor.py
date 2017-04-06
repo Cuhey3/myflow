@@ -83,5 +83,35 @@ class GatherProcessor():
         return await self.gather_processor(exchange)
 
 
+def set_body(expression):
+    async def processor(exchange):
+        from evaluator import evaluate_expression
+        exchange.set_body(evaluate_expression(expression, exchange))
+        return exchange
+
+    return processor
+
+
+def set_header(key, expression):
+    async def processor(exchange):
+        from evaluator import evaluate_expression
+        exchange.set_header(key, evaluate_expression(expression, exchange))
+        return exchange
+
+    return processor
+
+
+def to_json(expression=None):
+    async def processor(exchange):
+        from evaluator import evaluate_expression
+        #yapf: disable
+        to_dumps = exchange.get_body() if expression is None else evaluate_expression(expression, exchange)
+        import json
+        exchange.set_body(json.dumps(to_dumps))
+        return exchange
+
+    return processor
+
+
 # TBD:routingSlip
 # class RoutingSlipProcessor():

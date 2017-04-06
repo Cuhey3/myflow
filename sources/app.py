@@ -3,7 +3,7 @@ from producer import *
 from endpoints import Endpoints
 from exchange import Exchange
 from components import *
-from expression import *
+from evaluator import *
 
 
 def foo(string):
@@ -22,14 +22,16 @@ async def ppp(exchange):
 def predicate(exchange):
     return True
 
-(RouteId('myroute').to(foo('bar')).to(foo('wao')).when([
-        (predicate, To(foo('poko')).to(foo('pai'))),
-        (False, To(foo('pen')).to(foo('pee')).when([
-            (False, To(foo('nyao'))),
+(RouteId('myroute').to(foo('bar')).to(foo('wao'))
+        .to(set_header('ch','boo'))
+        .when([
+        (exists(header('ch')), To(foo('poko')).to(foo('pai'))),
+        (True, To(foo('pen')).to(foo('pee')).when([
+            (True, To(foo('nyao'))),
             (False, To(foo('passo')))]))
         ])
     .to(foo('final'))
-    .to(log({}))
+    .to(log())
     .filter(True)
     .to(foo('papaiya'))
     #.split(body, To(ppp))
@@ -50,11 +52,17 @@ def gather_func(exchanges):
 
 
 RouteId('gather_a').to(foo('bon'))
-RouteId('gathering').gather([To(direct({
-    'to': 'gather_a'
-})), To(foo('poyo'))], gather_func)
+RouteId('gathering').gather(
+    [To(direct({
+        'to': 'gather_a'
+    })), To(foo('poyo')).to(foo('pin'))], gather_func)
 
-Timer({'repeatCount': 3}).to(log({}))
+#expect: log exchange:body {"foo": null}
+Timer({
+    'repeatCount': 3
+}).to(set_body({
+    'foo': None
+})).to(to_json(header('foo'))).to(log())
 
 
 async def tasks_main():

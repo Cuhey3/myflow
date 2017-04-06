@@ -32,9 +32,9 @@ def cache(params):
     assert isinstance(keys_expression, list), 'keys parameter must be list.'
 
     async def process(exchange):
-        from util import expression_to_value
+        from evaluator import evaluate_expression
         cache_key = hashkey(
-            tuple(expression_to_value(keys_expression, exchange)))
+            tuple(evaluate_expression(keys_expression, exchange)))
         if cache_key in cache_object:
             exchange.set_body(cache_object.get(cache_key))
             print('cache loaded', cache_key)
