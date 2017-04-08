@@ -3,23 +3,24 @@ from exchange import Exchange
 
 
 class ContentBasedProcessor():
-    def __init__(self, routes, otherwise_processor):
-        def __content_based_processor(exchange):
-            for predicate, processor in routes:
+    def __init__(self, routes, otherwise_producer):
+        def __select_consumer(exchange):
+            for predicate, producer in routes:
                 if callable(predicate) and predicate(exchange) == True:
-                    return processor.first_producer()
+                    return producer.get_consumer()
                 elif predicate == True:
-                    return processor.first_producer()
+                    return producer.get_consumer()
             else:
-                if otherwise_processor:
-                    return otherwise_processor.first_producer()
+                if otherwise_producer:
+                    return otherwise_producer.get_consumer()
 
-        self.__content_based_processor = __content_based_processor
+        self.__select_consumer = __select_consumer
 
-    async def process(self, exchange):
-        selected_producer = self.__content_based_processor(exchange)
-        if selected_producer:
-            exchange = await selected_producer.produce(exchange)
+    async def processor(self, exchange):
+        consumer = self.__select_consumer(exchange)
+        from consumer import Consumer
+        if isinstance(consumer, Consumer):
+            exchange = await consumer.consume(exchange)
             return exchange
         return False
 
@@ -34,7 +35,7 @@ class FilterProcessor():
 
         self.__filter = __filter
 
-    async def process(self, exchange):
+    async def processor(self, exchange):
         if self.__filter(exchange):
             return exchange
         else:
@@ -45,24 +46,26 @@ class SplitProcessor():
     # TBD:aggregation_strategy=None
     def __init__(self, expression=None, producer=None):
         async def split_processor(exchange):
+            from producer import Producer
+            assert isinstance(producer, Producer), 'split processor requires Producer.' #yapf: disable
             import copy
-            top_producer = producer.first_producer()
             if callable(expression):
                 to_split = expression(exchange)
             else:
                 to_split = copy.deepcopy(exchange).get_body()
-
-            if producer:
-                import collections
-                if isinstance(to_split, str):
-                    to_split = to_split.split()
-                assert (isinstance(to_split, collections.Iterable))
-                for sp in to_split:
-                    await producer.produce(Exchange(sp))
+            consumer = producer.get_consumer()
+            from consumer import Consumer
+            assert isinstance(consumer, Consumer), 'Consumer is not set in Producer for split processor.' #yapf: disable
+            import collections
+            if isinstance(to_split, str):
+                to_split = to_split.split()
+            assert (isinstance(to_split, collections.Iterable))
+            for sp in to_split:
+                await consumer.produce(Exchange(sp))
 
         self.split_processor = split_processor
 
-    async def process(self, exchange):
+    async def processor(self, exchange):
         await self.split_processor(exchange)
         return None
 
@@ -72,15 +75,29 @@ class GatherProcessor():
         assert isinstance(producers, list), 'gathering producers must be list.' #yapf: disable
         async def gather_processor(exchange):
             import copy
-            coroutines = map(lambda producer: producer.first_producer().produce(copy.deepcopy(exchange)), producers)
+            coroutines = map(lambda producer: producer.get_consumer().produce(copy.deepcopy(exchange)), producers)
             import asyncio
             gathered = await asyncio.gather(*coroutines)
             return gather_func(gathered)
 
         self.gather_processor = gather_processor
 
-    async def process(self, exchange):
+    async def processor(self, exchange):
         return await self.gather_processor(exchange)
+
+
+class LambdaProcessor():
+    def __init__(self, func):
+        assert callable(func), 'argument passed to the process must be a function.' #yapf: disable
+
+        async def lambda_processor(exchange):
+            func(exchange)
+            return exchange
+
+        self.lambda_processor = lambda_processor
+
+    async def processor(self, exchange):
+        return await self.lambda_processor(exchange)
 
 
 def set_body(expression):

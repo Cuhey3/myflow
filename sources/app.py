@@ -1,5 +1,5 @@
 import asyncio
-from producer import *
+from consumer import *
 from endpoints import Endpoints
 from exchange import Exchange
 from components import *
@@ -7,12 +7,12 @@ from evaluator import *
 
 
 def foo(string):
-    async def process(exchange):
+    async def processor(exchange):
         assert (isinstance(exchange.get_body(), str))
         exchange.set_body(exchange.get_body() + ' ' + string)
         return exchange
 
-    return process
+    return processor
 
 
 async def ppp(exchange):
@@ -22,7 +22,8 @@ async def ppp(exchange):
 def predicate(exchange):
     return True
 
-(RouteId('myroute').to(foo('bar')).to(foo('wao'))
+(RouteId('myroute').process(lambda exchange: exchange.set_body('bar'))
+        .to(foo('wao'))
         .to(set_header('ch','boo'))
         .when([
         (exists(header('ch')), To(foo('poko')).to(foo('pai'))),
@@ -52,17 +53,18 @@ def gather_func(exchanges):
 
 
 RouteId('gather_a').to(foo('bon'))
-RouteId('gathering').gather(
-    [To(direct({
-        'to': 'gather_a'
-    })), To(foo('poyo')).to(foo('pin'))], gather_func)
+(RouteId('gathering')
+    .gather(
+        [To(direct({'to': 'gather_a'})), To(foo('poyo')).to(foo('pin'))],
+        gather_func)
+    .split(body(), Process(lambda x: print(x.body)))
+) #yapf: disable
 
 #expect: log exchange:body {"foo": null}
-Timer({
-    'repeatCount': 3
-}).to(set_body({
-    'foo': None
-})).to(to_json(header('foo'))).to(log())
+(Timer({'repeatCount': 3})
+    .to(set_header('foo', {'foo': None}))
+    .to(to_json(header('foo')))
+    .to(log())) #yapf: disable
 
 
 async def tasks_main():

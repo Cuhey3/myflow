@@ -31,7 +31,7 @@ def cache(params):
     keys_expression = params.get('keys')
     assert isinstance(keys_expression, list), 'keys parameter must be list.'
 
-    async def process(exchange):
+    async def processor(exchange):
         from evaluator import evaluate_expression
         cache_key = hashkey(
             tuple(evaluate_expression(keys_expression, exchange)))
@@ -44,4 +44,4 @@ def cache(params):
             print('cache saved', cache_key)
         return exchange
 
-    return process
+    return processor
