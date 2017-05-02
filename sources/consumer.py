@@ -15,6 +15,11 @@ class To(Consumer):
         super().__init__(processor, self)
 
 
+class Any(Consumer):
+    def __init__(self):
+        super().__init__(None, self)
+
+
 class RouteId(Consumer):
     def __init__(self, route_id):
         super().__init__(None, self)

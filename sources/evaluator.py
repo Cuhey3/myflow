@@ -43,22 +43,14 @@ def __dig_dict(key, value):
 # [body(), header('foo.bar')] => [value1, value2]
 def evaluate_expression(expression, exchange):
     if isinstance(expression, dict):
-        result = {}
-        for k, v in expression.items():
-            e_k = evaluate_expression(k, exchange)
-            e_v = evaluate_expression(v, exchange)
-            result[e_k] = e_v
-        return result
+        return {
+            evaluate_expression(k, exchange): evaluate_expression(v, exchange)
+            for k, v in expression.items()
+        }
     elif isinstance(expression, list):
-        result = []
-        for v in expression:
-            result.append(evaluate_expression(v, exchange))
-        return result
+        return [evaluate_expression(v, exchange) for v in expression]
     elif isinstance(expression, tuple):
-        result = []
-        for v in expression:
-            result.append(evaluate_expression(v, exchange))
-        return tuple(result)
+        return tuple([evaluate_expression(v, exchange) for v in expression])
     elif callable(expression):
         return expression(exchange)
     else:

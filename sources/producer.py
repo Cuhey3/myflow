@@ -37,6 +37,14 @@ class Producer():
         self.custom_processor.append(LambdaProcessor(func))
         return self
 
+    def process_with_queue(self, params):
+        self.custom_processor.append(WithQueueProcessor(params))
+        return self
+
+    def put_queue(self, queue_name, expression=None):
+        self.custom_processor.append(PutQueueProcessor(queue_name, expression))
+        return self
+
     async def produce(self, exchange):
         if exchange and self.processor:
             exchange = await self.processor(exchange)

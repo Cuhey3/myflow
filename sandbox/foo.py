@@ -1,2 +1,5 @@
 for k in dir(None):
-    print(None [k])
+    print(k)
+
+foo = ('a', 'b')
+print(foo[1])

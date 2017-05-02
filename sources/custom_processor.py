@@ -1,5 +1,6 @@
 #exchangeが妥当かのチェックはここではせずProducer.produceで行う
 from exchange import Exchange
+import asyncio
 
 
 class ContentBasedProcessor():
@@ -60,25 +61,25 @@ class SplitProcessor():
             if isinstance(to_split, str):
                 to_split = to_split.split()
             assert (isinstance(to_split, collections.Iterable))
-            for sp in to_split:
-                await consumer.produce(Exchange(sp))
+            await asyncio.gather(* [
+                consumer.produce(exchange.create_child(Exchange(sp)))
+                for sp in to_split
+            ])
 
         self.split_processor = split_processor
 
     async def processor(self, exchange):
         await self.split_processor(exchange)
-        return None
+        return exchange
 
 
 class GatherProcessor():
     def __init__(self, producers, gather_func):
         assert isinstance(producers, list), 'gathering producers must be list.' #yapf: disable
         async def gather_processor(exchange):
-            import copy
-            coroutines = map(lambda producer: producer.get_consumer().produce(copy.deepcopy(exchange)), producers)
-            import asyncio
-            gathered = await asyncio.gather(*coroutines)
-            return gather_func(gathered)
+            coroutines = map(lambda producer: producer.get_consumer().produce(exchange.create_child()), producers)
+            await asyncio.gather(*coroutines)
+            return gather_func(exchange.children)
 
         self.gather_processor = gather_processor
 
@@ -98,6 +99,80 @@ class LambdaProcessor():
 
     async def processor(self, exchange):
         return await self.lambda_processor(exchange)
+
+
+class WithQueueProcessor():
+    def __init__(self, params):
+        assert 'channels' in params, 'channels parameter is required.'
+        loop = asyncio.get_event_loop()
+        channels = params.get('channels')
+
+        async def with_queue_processor(exchange):
+            prepare_queue = asyncio.Queue(
+                loop=loop, maxsize=params.get('maxsize', 0))
+            task_queue = asyncio.Queue(loop=loop)
+            from evaluator import evaluate_expression
+            init_queues = evaluate_expression(
+                params.get('init_queue', {}), exchange)
+
+            async def init_queue(exchange):
+                for channel_name in init_queues:
+                    init_queue = init_queues.get(channel_name, [])
+                    for q in init_queue:
+                        await task_queue.put((channel_name, q))
+
+            await init_queue(exchange)
+            queues = exchange.get_header('queues', {})
+            queues[params.get('queue_name', 'default_queue')] = task_queue
+            exchange.set_header('queues', queues)
+
+            async def create_task(task):
+                channel = task[0]
+                body = task[1]
+                child = exchange.create_child()
+                child.set_body(body)
+                await channels.get(channel).produce(child)
+                await prepare_queue.get()
+                if task_queue.empty() and prepare_queue.empty():
+                    await task_queue.put(None)
+                else:
+                    print(task_queue.qsize(), prepare_queue.qsize())
+
+            while True:
+                task = await task_queue.get()
+                if task is None:
+                    break
+                await prepare_queue.put('')
+
+                loop.create_task(create_task(task))
+            return exchange
+
+        self.with_queue_processor = with_queue_processor
+
+    async def processor(self, exchange):
+        return await self.with_queue_processor(exchange)
+
+
+class PutQueueProcessor():
+    def __init__(self,
+                 channel_name,
+                 expression=None,
+                 queue_name='default_queue'):
+        from evaluator import evaluate_expression
+
+        async def put_queue_processor(exchange):
+            if expression is None:
+                value = exchange.get_body()
+            else:
+                value = evaluate_expression(expression, exchange)
+            await exchange.parent().get_header('queues').get(queue_name).put(
+                (channel_name, value))
+            return exchange
+
+        self.put_queue_processor = put_queue_processor
+
+    async def processor(self, exchange):
+        return await self.put_queue_processor(exchange)
 
 
 def set_body(expression):

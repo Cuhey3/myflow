@@ -24,7 +24,8 @@ def predicate(exchange):
 
 
 
-(RouteId('myroute').process(lambda exchange: exchange.set_body('bar'))
+(RouteId('myroute')
+        .process(lambda exchange: exchange.set_body('bar'))
         .to(foo('wao'))
         .to(set_header('ch','boo'))
         .when([
@@ -59,7 +60,7 @@ RouteId('gather_a').to(foo('bon'))
     .gather(
         [To(direct({'to': 'gather_a'})), To(foo('poyo')).to(foo('pin'))],
         gather_func)
-    .split(body(), Process(lambda x: print(x.body)).process(lambda x:print(x.body,x.body)))
+    #.split(body(), Process(lambda x: print(x.body)).process(lambda x:print(x.body,x.body)))
 ) #yapf: disable
 
 #expect: log exchange:body {"foo": null}

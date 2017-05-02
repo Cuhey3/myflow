@@ -13,10 +13,11 @@ def direct(params={}):
 
 def log(params={}):
     async def processor(exchange):
+        log_name = 'log:' + params.get('name', '')
         if params.get('body', True):
-            print('log', 'exchange:body', exchange.get_body())
+            print(log_name, 'exchange:body', exchange.get_body())
         if params.get('header', False):
-            print('log', 'exchange:headers', exchange.get_headers())
+            print(log_name, 'exchange:headers', exchange.get_headers())
         return exchange
 
     return processor
