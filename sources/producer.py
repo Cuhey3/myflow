@@ -41,8 +41,17 @@ class Producer():
         self.custom_processor.append(WithQueueProcessor(params))
         return self
 
-    def put_queue(self, queue_name, expression=None):
-        self.custom_processor.append(PutQueueProcessor(queue_name, expression))
+    def put_queue(self,
+                  channel_name,
+                  expression=None,
+                  queue_name='default_queue',
+                  unique=False):
+        self.custom_processor.append(
+            PutQueueProcessor(channel_name, expression, queue_name, unique))
+        return self
+
+    def update_exchange(self, params):
+        self.custom_processor.append(UpdateExchangeProcessor(params))
         return self
 
     async def produce(self, exchange):

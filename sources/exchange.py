@@ -30,5 +30,4 @@ class Exchange:
             return self
 
         child.parent = access_parent
-        #self.children.append(child)
         return child

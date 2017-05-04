@@ -55,4 +55,34 @@ class Process(Consumer):
         super().__init__(async_func, self)
 
 
-#TBD: Aiohttp
+class Aiohttp(Consumer):
+    __web_application = None
+
+    def __init__(self, uri=None):
+        if Aiohttp.__web_application is None:
+            from aiohttp import web
+            Aiohttp.__web_application = web.Application()
+        if uri:
+            super().__init__(None, self)
+
+            async def handle(request):
+                header = {}
+                for key in request.match_info:
+                    header[key] = request.match_info.get(key)
+                for key in request.rel_url.query:
+                    header[key] = request.rel_url.query.get(key)
+                exchange = await self.produce(Exchange({}, header))
+                text = exchange.get_body()
+                content_type = exchange.get_header('content-type')
+                return web.Response(text=text, content_type=content_type)
+
+            self.application().router.add_get(uri, handle)
+
+    def application(self):
+        return self.__web_application
+
+    def run(self):
+        import os
+        from aiohttp import web
+        port = int(os.environ.get('PORT', 8080))
+        web.run_app(self.__web_application, host='0.0.0.0', port=port)

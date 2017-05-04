@@ -1,6 +1,7 @@
 #exchangeが妥当かのチェックはここではせずProducer.produceで行う
 from exchange import Exchange
 import asyncio
+from evaluator import evaluate_expression
 
 
 class ContentBasedProcessor():
@@ -92,7 +93,9 @@ class LambdaProcessor():
         assert callable(func), 'argument passed to the process must be a function.' #yapf: disable
 
         async def lambda_processor(exchange):
-            func(exchange)
+            result = func(exchange)
+            if result is not None:
+                exchange.set_body(result)
             return exchange
 
         self.lambda_processor = lambda_processor
@@ -111,7 +114,6 @@ class WithQueueProcessor():
             prepare_queue = asyncio.Queue(
                 loop=loop, maxsize=params.get('maxsize', 0))
             task_queue = asyncio.Queue(loop=loop)
-            from evaluator import evaluate_expression
             init_queues = evaluate_expression(
                 params.get('init_queue', {}), exchange)
 
@@ -125,25 +127,26 @@ class WithQueueProcessor():
             queues = exchange.get_header('queues', {})
             queues[params.get('queue_name', 'default_queue')] = task_queue
             exchange.set_header('queues', queues)
+            channel_dict = exchange.get_header('channel_dict', {})
+            for k in channels:
+                channel_dict[k] = {}
+            exchange.set_header('channel_dict', channel_dict)
 
             async def create_task(task):
                 channel = task[0]
                 body = task[1]
                 child = exchange.create_child()
                 child.set_body(body)
-                await channels.get(channel).produce(child)
-                await prepare_queue.get()
+                await channels.get(channel).get_consumer().produce(child)
+                prepare_queue.get_nowait()
                 if task_queue.empty() and prepare_queue.empty():
                     await task_queue.put(None)
-                else:
-                    print(task_queue.qsize(), prepare_queue.qsize())
 
             while True:
                 task = await task_queue.get()
                 if task is None:
                     break
                 await prepare_queue.put('')
-
                 loop.create_task(create_task(task))
             return exchange
 
@@ -157,16 +160,32 @@ class PutQueueProcessor():
     def __init__(self,
                  channel_name,
                  expression=None,
-                 queue_name='default_queue'):
-        from evaluator import evaluate_expression
-
+                 queue_name='default_queue',
+                 unique=False):
         async def put_queue_processor(exchange):
             if expression is None:
                 value = exchange.get_body()
             else:
                 value = evaluate_expression(expression, exchange)
-            await exchange.parent().get_header('queues').get(queue_name).put(
-                (channel_name, value))
+            import collections
+
+            def put_queue(v):
+                if unique:
+                    if not exchange.parent().get_header('channel_dict').get(
+                            channel_name).get(v, False):
+                        exchange.parent().get_header('channel_dict').get(
+                            channel_name)[v] = True
+                    else:
+                        return False
+                exchange.parent().get_header('queues').get(
+                    queue_name).put_nowait((channel_name, v))
+                return True
+
+            if isinstance(value, collections.Iterable):
+                for v in value:
+                    put_queue(v)
+            else:
+                put_queue(value)
             return exchange
 
         self.put_queue_processor = put_queue_processor
@@ -175,9 +194,25 @@ class PutQueueProcessor():
         return await self.put_queue_processor(exchange)
 
 
+class UpdateExchangeProcessor():
+    def __init__(self, params):
+        async def update_exchange_processor(exchange):
+            for field_name in params:
+                value = evaluate_expression(params[field_name], exchange)
+                if field_name == 'body':
+                    exchange.set_body(value)
+                else:
+                    exchange.set_header(field_name, value)
+            return exchange
+
+        self.update_exchange_processor = update_exchange_processor
+
+    async def processor(self, exchange):
+        return await self.update_exchange_processor(exchange)
+
+
 def set_body(expression):
     async def processor(exchange):
-        from evaluator import evaluate_expression
         exchange.set_body(evaluate_expression(expression, exchange))
         return exchange
 
@@ -186,7 +221,6 @@ def set_body(expression):
 
 def set_header(key, expression):
     async def processor(exchange):
-        from evaluator import evaluate_expression
         exchange.set_header(key, evaluate_expression(expression, exchange))
         return exchange
 
@@ -195,7 +229,6 @@ def set_header(key, expression):
 
 def to_json(expression=None):
     async def processor(exchange):
-        from evaluator import evaluate_expression
         #yapf: disable
         to_dumps = exchange.get_body() if expression is None else evaluate_expression(expression, exchange)
         import json
@@ -203,7 +236,6 @@ def to_json(expression=None):
         return exchange
 
     return processor
-
 
 # TBD:routingSlip
 # class RoutingSlipProcessor():
