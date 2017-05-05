@@ -54,15 +54,34 @@ class Producer():
         self.custom_processor.append(UpdateExchangeProcessor(params))
         return self
 
+    def validate(self, params):
+        self.custom_processor.append(ValidateProcessor(params))
+        return self
+
+    def throttle(self, throttle_size):
+        self.custom_processor.append(ThrottleProcessor(throttle_size))
+        return self
+
     async def produce(self, exchange):
-        if exchange and self.processor:
-            exchange = await self.processor(exchange)
-        if exchange:
-            for processor in self.custom_processor:
-                exchange = await processor.processor(exchange)
-                if not exchange:
-                    break
+        try:
+            throttle_processors = []
+            if not exchange.get_header('validate', True):
+                return exchange
+            if exchange and self.processor:
+                exchange = await self.processor(exchange)
             if exchange:
-                if self.next_producer:
-                    exchange = await self.next_producer.produce(exchange)
+                for processor in self.custom_processor:
+                    if isinstance(processor, ThrottleProcessor):
+                        throttle_processors.append(processor)
+                    exchange = await processor.processor(exchange)
+                    if not exchange:
+                        break
+                    if not exchange.get_header('validate', True):
+                        break
+                if exchange:
+                    if self.next_producer:
+                        exchange = await self.next_producer.produce(exchange)
+        finally:
+            for processor in throttle_processors:
+                await processor.consume()
         return exchange

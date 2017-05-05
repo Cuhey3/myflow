@@ -2,6 +2,7 @@
 from exchange import Exchange
 import asyncio
 from evaluator import evaluate_expression
+loop = asyncio.get_event_loop()
 
 
 class ContentBasedProcessor():
@@ -107,7 +108,6 @@ class LambdaProcessor():
 class WithQueueProcessor():
     def __init__(self, params):
         assert 'channels' in params, 'channels parameter is required.'
-        loop = asyncio.get_event_loop()
         channels = params.get('channels')
 
         async def with_queue_processor(exchange):
@@ -209,6 +209,51 @@ class UpdateExchangeProcessor():
 
     async def processor(self, exchange):
         return await self.update_exchange_processor(exchange)
+
+
+class ValidateProcessor():
+    def __init__(self, params):
+        rule = params.get('rule', None)
+        process_rule = params.get('process_rule', None)
+        to = params.get('to', None)
+        message = params.get('message', None)
+
+        async def validate_processor(exchange):
+            if rule:
+                if not rule(exchange):
+                    exchange.set_header('validate', False)
+            elif process_rule:
+                exchange = await process_rule.get_consumer().produce(exchange)
+            if not exchange.get_header('validate', True):
+                if to:
+                    exchange = await to.get_consumer().produce(exchange)
+                elif message:
+                    exchange.set_body(message)
+            return exchange
+
+        self.validate_processor = validate_processor
+
+    async def processor(self, exchange):
+        return await self.validate_processor(exchange)
+
+
+class ThrottleProcessor():
+    def __init__(self, throttle_size):
+        self.throttle_queue = asyncio.Queue(maxsize=throttle_size, loop=loop)
+
+        async def throttle_processor(exchange):
+            await self.throttle_queue.put('')
+            print('entry throttle queue')
+            return exchange
+
+        self.throttle_processor = throttle_processor
+
+    async def processor(self, exchange):
+        return await self.throttle_processor(exchange)
+
+    async def consume(self):
+        await self.throttle_queue.get()
+        print('release throttle queue')
 
 
 def set_body(expression):

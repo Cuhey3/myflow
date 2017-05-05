@@ -28,13 +28,13 @@ def log(params={}):
     return processor
 
 
-from cachetools import cached, hashkey, TTLCache
-cache_object = TTLCache(maxsize=1000, ttl=60)
+from cachetools import cached, hashkey
 
 
 def cache(params):
     to = params.get('to')
     keys_expression = params.get('keys')
+    cache_object = params.get('cache_object')
     assert isinstance(keys_expression, list), 'keys parameter must be list.'
 
     async def processor(exchange):
@@ -44,7 +44,7 @@ def cache(params):
             exchange.set_body(cache_object.get(cache_key))
             print('cache loaded', cache_key)
         else:
-            exchange = await Endpoints().send_to(to, exchange)
+            exchange = await to.get_consumer().produce(exchange)
             cache_object[cache_key] = exchange.get_body()
             print('cache saved', cache_key)
         return exchange
@@ -55,6 +55,7 @@ def cache(params):
 def aiohttp_request(params={}):
     url_expression = params.get('url', None)
     response_type = params.get('response_type', 'text')
+    isValid = params.get('isValid', False)
 
     async def processor(exchange):
         if url_expression is None:
@@ -64,11 +65,14 @@ def aiohttp_request(params={}):
         import aiohttp
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
-                if response_type == 'text':
-                    exchange.set_body(await resp.text())
-                elif response_type == 'data':
-                    exchange.set_body(await resp.read())
-                exchange.set_header('request_url', url)  #buggy
+                if isValid:
+                    exchange.set_header('validate', resp.status == 200)
+                else:
+                    if response_type == 'text':
+                        exchange.set_body(await resp.text())
+                    elif response_type == 'data':
+                        exchange.set_body(await resp.read())
+                    exchange.set_header('request_url', url)  #buggy
             return exchange
 
     return processor

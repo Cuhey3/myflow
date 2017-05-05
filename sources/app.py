@@ -1,27 +1,49 @@
 from consumer import *
-from endpoints import Endpoints
-from exchange import Exchange
 from components import *
 from evaluator import *
 import re
+from cachetools import LRUCache
+ameblo_cache = LRUCache(maxsize=1000)
 
-(Aiohttp('/ameblo-images').to(direct('ameblo_images')))
+#yapf:disable
+(Aiohttp('/ameblo-images')
+    .validate({
+        'rule': lambda ex: re.match('^https://ameblo.jp/.+/$', ex.get_header('url','')),
+        'message':'urlパラメータに有効なameblo urlをセットしてください。書式: https://ameblo.jp/{userid}/'})
 
-(RouteId('ameblo_images')
-    .to(log({'name':'ameblo_images_route_start'}))
+    .to(cache({
+        'cache_object': ameblo_cache,
+        'keys': [header('url')],
+        'to': Any()
+            .throttle(1)
+            .to(cache({
+                'cache_object': ameblo_cache,
+                'keys': [header('url')],
+                'to': To(direct('ameblo_images_main'))
+                }))
+        }))
+)
 
-    # get entrylist last url: max=20
-    .to(aiohttp_request({'url':lambda ex: '{}entrylist-20.html'.format(ex.get_header('url'))}))
+#yapf:disable
+(RouteId('ameblo_images_main')
+    .validate({
+        'process_rule': To(aiohttp_request({'url': header('url'), 'isValid': True})),
+        'message': 'amebloサーバーからのレスポンスに問題があるため、処理を中断しました。ameblo idおよびamebloサーバーのステータスを確認してください。'
+    })
+
+    .to(log({'name':'ameblo_images_main_start','header':True, 'body': False}))
+    # get entrylist last url: max=10
+    .to(aiohttp_request({'url':lambda ex: '{}entrylist-10.html'.format(ex.get_header('url'))}))
     .to(soup(lambda soup:(soup.find('a', class_='pagingPrev') or
                      soup.find('a', class_='previousPage') or
-                     soup.find('a', class_='skin-paginationPrev')).get('href')))
+                     soup.find('a', class_='skin-paginationPrev') or
+                     soup.new_tag("a", href="entrylist-1.html")).get('href')))
 
     # set entrylist url: entrylist-1.html, entrylist-2.html,...
-    .process(lambda ex:['{}entrylist-{}.html'.format(ex.get_header('url'), i)
-        for i in range(1, int(ex.get_body().split('entrylist-')[1].split('.')[0]) + 2)])
-
-    # start queue process
-    .to(log({'name':'ameblo_images_queue_process_start'}))
+    .process(lambda ex:[
+        '{}entrylist-{}.html'.format(ex.get_header('url'), i)
+        for i in range(1, int(ex.get_body().split('entrylist-')[1].split('.')[0]) + 2)
+        ])
 
     # open zipfile
     .to(zipper({
@@ -56,11 +78,11 @@ import re
             'channel_1':body()
         },
         'queue_name': 'myqueue',
-        'maxsize': 20
+        'maxsize': 30
     })
     .to(zipper({'mode':'close'}))
     .update_exchange({'body': header('zip_file_name')})
-    .to(log({'name':'ameblo_images_queue_process_end'}))
+    .to(log({'name':'ameblo_images_main_end'}))
  )
 
 Aiohttp().application().router.add_static(

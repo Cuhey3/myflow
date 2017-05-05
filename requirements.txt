@@ -1,2 +1,12 @@
+aiohttp==2.0.6
+async-timeout==1.2.0
+beautifulsoup4==4.5.3
 cachetools==1.1.6
+chardet==2.3.0
+lxml==3.7.3
+multidict==2.1.4
+pycosat==0.6.1
+requests==2.13.0
+ruamel.yaml==0.14.5
 yapf==0.16.1
+yarl==0.10.0
