@@ -111,8 +111,6 @@ class WithQueueProcessor():
         channels = params.get('channels')
 
         async def with_queue_processor(exchange):
-            prepare_queue = asyncio.Queue(
-                loop=loop, maxsize=params.get('maxsize', 0))
             task_queue = asyncio.Queue(loop=loop)
             init_queues = evaluate_expression(
                 params.get('init_queue', {}), exchange)
@@ -124,6 +122,12 @@ class WithQueueProcessor():
                         await task_queue.put((channel_name, q))
 
             await init_queue(exchange)
+            if task_queue.empty():
+                return exchange
+
+            prepare_queue = asyncio.Queue(
+                loop=loop, maxsize=params.get('maxsize', 0))
+
             queues = exchange.get_header('queues', {})
             queues[params.get('queue_name', 'default_queue')] = task_queue
             exchange.set_header('queues', queues)
