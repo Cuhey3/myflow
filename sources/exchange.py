@@ -4,6 +4,7 @@ class Exchange:
         assert isinstance(header, dict), 'exchange header must be dict.'
         self.header = header
         self.children = []
+        self.parent = None
 
     def get_body(self):
         return self.body

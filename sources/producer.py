@@ -12,17 +12,16 @@ class Producer():
         self.next_producer = Producer(processor, self.consumer)
         return self.next_producer
 
-    def when(self, routes, otherwise_processor=None):
-        self.custom_processor.append(
-            ContentBasedProcessor(routes, otherwise_processor))
+    def when(self, routes):
+        self.custom_processor.append(ContentBasedProcessor(routes))
         return self
 
     def filter(self, predicate):
         self.custom_processor.append(FilterProcessor(predicate))
         return self
 
-    def split(self, expression, producer):
-        self.custom_processor.append(SplitProcessor(expression, producer))
+    def split(self, params):
+        self.custom_processor.append(SplitProcessor(params))
         return self
 
     def gather(self, processors, gather_func):
@@ -30,7 +29,6 @@ class Producer():
         return self
 
     def get_consumer(self):
-        from consumer import Consumer
         return self.consumer
 
     def process(self, func):

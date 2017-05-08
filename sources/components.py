@@ -1,29 +1,26 @@
 from endpoints import Endpoints
-from evaluator import evaluate_expression
+from evaluator import evaluate_expression, body, header
 
 
-def direct(params=None):
-    if params:
-        if isinstance(params, dict):
-            endpoint_to = params.get('to')
-        elif isinstance(params, str):
-            endpoint_to = params
+def direct(params):
+    assert isinstance(params, str), 'string is required as argument.'
 
     async def processor(exchange):
-        exchange = await Endpoints().send_to(endpoint_to, exchange)
-        return exchange
+        return await Endpoints().send_to(params, exchange)
 
     return processor
 
 
 def log(params={}):
+    log_name = 'log:' + params.get('name') if 'name' in params else 'log'
+    show_body = params.get('body', True)
+    show_header = params.get('header', False)
+
     async def processor(exchange):
-        log_name = 'log:' + params.get('name', '')
-        if params.get('body', True):
+        if show_body:
             print(log_name, 'exchange:body', exchange.get_body())
-        if params.get('header', False):
-            print(log_name, 'exchange:headers', exchange.get_headers())
-        return exchange
+        if show_header:
+            print(log_name, 'exchange:header', exchange.get_headers())
 
     return processor
 
@@ -53,15 +50,12 @@ def cache(params):
 
 
 def aiohttp_request(params={}):
-    url_expression = params.get('url', None)
+    url_expression = params.get('url') or body()
     response_type = params.get('response_type', 'text')
     isValid = params.get('isValid', False)
 
     async def processor(exchange):
-        if url_expression is None:
-            url = exchange.get_body()
-        else:
-            url = evaluate_expression(url_expression, exchange)
+        url = evaluate_expression(url_expression, exchange)
         import aiohttp
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
@@ -78,15 +72,11 @@ def aiohttp_request(params={}):
     return processor
 
 
-def soup(func, attr=None):
+def soup(func):
     async def processor(exchange):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(exchange.get_body(), 'lxml')
-        elements = func(soup)
-        if attr is None:
-            exchange.set_body(elements)
-        else:
-            exchange.set_body([element.get(attr) for element in elements])
+        exchange.set_body(func(soup))
         return exchange
 
     return processor
@@ -97,22 +87,20 @@ def zipper(params):
     from zipfile import ZipFile
     import zipfile
     if mode == 'open':
+        expression = params.get('zip_file_name') or header('zip_file_name')
 
         async def processor(exchange):
-            if 'zip_file_name' in params:
-                zip_file_name = evaluate_expression(
-                    params.get('zip_file_name'), exchange)
-                exchange.set_header('zip_file_name', zip_file_name)
-            else:
-                zip_file_name = exchange.get_header('zip_file_name')
+            zip_file_name = evaluate_expression(expression, exchange)
+            exchange.set_header('zip_file_name', zip_file_name)
             exchange.set_header('zipfile',
                                 ZipFile(zip_file_name, 'w',
                                         zipfile.ZIP_DEFLATED))
             return exchange
     elif mode == 'write':
+        expression = params.get('file_name')
 
         async def processor(exchange):
-            file_name = evaluate_expression(params.get('file_name'), exchange)
+            file_name = evaluate_expression(expression, exchange)
             (exchange.get_header('zipfile') or
              exchange.parent().get_header('zipfile')).writestr(
                  file_name, exchange.get_body())

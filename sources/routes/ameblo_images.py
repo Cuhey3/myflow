@@ -1,6 +1,6 @@
-from consumer import *
-from components import *
-from evaluator import *
+from consumer import Aiohttp, Any, To, RouteId
+from components import cache, direct, aiohttp_request, log, soup, zipper
+from evaluator import header, body
 import re
 from cachetools import LRUCache
 ameblo_cache = LRUCache(maxsize=1000)
@@ -55,15 +55,19 @@ ameblo_cache = LRUCache(maxsize=1000)
         'channels': {
             # channel_1: get entry page url from entrylist and put queue to channel_2
             'channel_1': To(aiohttp_request())
-                .to(soup(lambda soup: soup.find_all('a',
-                    href=re.compile('https://ameblo\.jp/.*?/entry-\d+\.html$'),
-                    text=re.compile('.')), attr='href'))
-                .put_queue('channel_2', queue_name='myqueue',unique=True),
+                .to(soup(lambda soup: [element.get('href')
+                        for element in soup.find_all('a',
+                            href=re.compile('https://ameblo\.jp/.*?/entry-\d+\.html$'),
+                            text=re.compile('.'))]))
+
+                .put_queue('channel_2', queue_name='myqueue', unique=True),
 
             # channel_2: get image url from entry page and put queue to channel_3
             'channel_2': To(aiohttp_request())
-                .to(soup(lambda soup:soup.find_all(
-                    "img", src=re.compile("^http.*user_images.*?/o")),attr='src'))
+                .to(soup(lambda soup:[element.get('src')
+                        for element in soup.find_all("img",
+                            src=re.compile("^http.*user_images.*?/o"))]))
+
                 .put_queue('channel_3', queue_name='myqueue'),
 
             # channel_3: get image from image url and write to zip

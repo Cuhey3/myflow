@@ -1,31 +1,25 @@
-#exchangeが妥当かのチェックはここではせずProducer.produceで行う
 from exchange import Exchange
 import asyncio
-from evaluator import evaluate_expression
+from evaluator import evaluate_expression, body
 loop = asyncio.get_event_loop()
 
 
 class ContentBasedProcessor():
-    def __init__(self, routes, otherwise_producer):
+    def __init__(self, routes):
         def __select_consumer(exchange):
             for predicate, producer in routes:
-                if callable(predicate) and predicate(exchange) == True:
+                if (callable(predicate) and
+                        predicate(exchange) == True) or predicate == True:
                     return producer.get_consumer()
-                elif predicate == True:
-                    return producer.get_consumer()
-            else:
-                if otherwise_producer:
-                    return otherwise_producer.get_consumer()
 
         self.__select_consumer = __select_consumer
 
     async def processor(self, exchange):
         consumer = self.__select_consumer(exchange)
-        from consumer import Consumer
-        if isinstance(consumer, Consumer):
-            exchange = await consumer.consume(exchange)
-            return exchange
-        return False
+        if consumer is None:
+            return False
+        else:
+            return await consumer.consume(exchange)
 
 
 class FilterProcessor():
@@ -46,33 +40,37 @@ class FilterProcessor():
 
 
 class SplitProcessor():
-    # TBD:aggregation_strategy=None
-    def __init__(self, expression=None, producer=None):
+    def __init__(self, params):
+        from_ = params.get('from') or body()
+        to = params.get('to', None)
+        aggregate = params.get('aggregate', None)
+        assert to is not None, 'split processor requires to argument.'
+        assert aggregate is None or callable(
+            aggregate
+        ), 'split processor requires aggregate argument as function.'
+        consumer = to.get_consumer()
+
         async def split_processor(exchange):
-            from producer import Producer
-            assert isinstance(producer, Producer), 'split processor requires Producer.' #yapf: disable
             import copy
-            if callable(expression):
-                to_split = expression(exchange)
-            else:
-                to_split = copy.deepcopy(exchange).get_body()
-            consumer = producer.get_consumer()
-            from consumer import Consumer
-            assert isinstance(consumer, Consumer), 'Consumer is not set in Producer for split processor.' #yapf: disable
+            to_split = evaluate_expression(from_, exchange)
             import collections
             if isinstance(to_split, str):
                 to_split = to_split.split()
-            assert (isinstance(to_split, collections.Iterable))
-            await asyncio.gather(* [
+            assert isinstance(
+                to_split,
+                collections.Iterable), 'split target is not iterable.'
+            gatherd = await asyncio.gather(* [
                 consumer.produce(exchange.create_child(Exchange(sp)))
                 for sp in to_split
             ])
+            if aggregate:
+                exchange.set_body(aggregate(gatherd))
+            return exchange
 
         self.split_processor = split_processor
 
     async def processor(self, exchange):
-        await self.split_processor(exchange)
-        return exchange
+        return await self.split_processor(exchange)
 
 
 class GatherProcessor():
