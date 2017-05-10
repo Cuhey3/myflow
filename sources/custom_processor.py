@@ -258,6 +258,20 @@ class ThrottleProcessor():
         print('release throttle queue')
 
 
+class AssertProcessor():
+    def __init__(self, check_name, assert_func, expression, *args):
+        async def assert_processor(exchange):
+            value = evaluate_expression(expression, exchange)
+            assert_func(value, *args)
+            print(check_name, 'passed')
+            return exchange
+
+        self.assert_processor = assert_processor
+
+    async def processor(self, exchange):
+        return await self.assert_processor(exchange)
+
+
 def set_body(expression):
     async def processor(exchange):
         exchange.set_body(evaluate_expression(expression, exchange))

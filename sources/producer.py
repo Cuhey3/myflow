@@ -60,6 +60,10 @@ class Producer():
         self.custom_processor.append(ThrottleProcessor(throttle_size))
         return self
 
+    def assert_(self, *args):
+        self.custom_processor.append(AssertProcessor(*args))
+        return self
+
     async def produce(self, exchange):
         try:
             throttle_processors = []
@@ -83,3 +87,7 @@ class Producer():
             for processor in throttle_processors:
                 await processor.consume()
         return exchange
+
+    def send_to_sync(self, exchange=Exchange()):
+        return asyncio.get_event_loop().run_until_complete(
+            self.get_consumer().produce(exchange))
