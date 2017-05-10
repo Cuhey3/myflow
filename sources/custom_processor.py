@@ -261,6 +261,9 @@ class ThrottleProcessor():
 class AssertProcessor():
     def __init__(self, check_name, assert_func, expression, *args):
         async def assert_processor(exchange):
+            assert isinstance(check_name, str), 'first argument must be str.'
+            assert callable(
+                assert_func), 'second argument must be assert function.'
             value = evaluate_expression(expression, exchange)
             assert_func(value, *args)
             print(check_name, 'passed')
