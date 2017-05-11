@@ -64,6 +64,10 @@ class Producer():
         self.custom_processor.append(AssertProcessor(*args))
         return self
 
+    def sleep(self, num):
+        self.custom_processor.append(SleepProcessor(num))
+        return self
+
     async def produce(self, exchange):
         try:
             throttle_processors = []

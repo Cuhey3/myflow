@@ -1,6 +1,6 @@
 from consumer import Aiohttp, Any, To, RouteId
 from components import cache, direct, aiohttp_request, log, soup, zipper
-from evaluator import header, body
+from evaluator import header, body, set_body, get_header
 import re
 from cachetools import LRUCache
 ameblo_cache = LRUCache(maxsize=1000)
@@ -85,7 +85,7 @@ ameblo_cache = LRUCache(maxsize=1000)
         'maxsize': 30
     })
     .to(zipper({'mode':'close'}))
-    .update_exchange({'body': header('zip_file_name')})
+    .process(set_body(get_header('zip_file_name')))
     .to(log({'name':'ameblo_images_main_end'}))
  )
 

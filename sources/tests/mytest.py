@@ -1,27 +1,29 @@
 import unittest
-from consumer import Any, RouteId, To
+from consumer import Any, RouteId, To, Composer
 from exchange import Exchange
-from components import direct, cache, log
-from evaluator import body, header
+from components import direct, cache, log, composer
+from evaluator import *
 
 
 class Mytest(unittest.TestCase):
     def test_exchange(self):
         ((Any()
             .assert_('test_exchange_0', self.assertEqual, body(), 'foo')
-            .process(lambda ex: ex.set_body(True))
+            .process(set_body(True))
             .assert_('test_exchange_1', self.assertTrue, body())
-            .process(lambda ex: ex.set_body({'dict': 'dddd'}))
+            .process(set_body({'dict': 'dddd'}))
             .assert_('test_exchange_2', self.assertEqual, body('dict'), 'dddd')
-            .process(lambda ex: ex.set_header('foo', 'bar'))
+            .process(set_header('foo', 'bar'))
             .assert_('test_exchange_3', self.assertEqual, header('foo'), 'bar'))
-            .process(lambda ex: ex.set_header('boo', {'bar': 'yay'}))
+            .process(set_header('boo', {'bar': 'yay'}))
             .assert_('test_exchange_4', self.assertEqual, header('boo.bar'), 'yay')
+            .process(set_header('poyo', get_body()))
+            .assert_('test_exchange_5', self.assertEqual, header('poyo'), {'dict': 'dddd'})
         ).send_to_sync(Exchange('foo')) #yapf: disable
 
     def test_direct(self):
         (RouteId('test_direct')
-            .process(lambda ex: ex.set_body('test_direct_success'))) #yapf: disable
+            .process(set_body('test_direct_success'))) #yapf: disable
         ((Any()
             .assert_('test_direct_0', self.assertEqual, body(), 'boo')
             .to(direct('test_direct'))
@@ -36,7 +38,7 @@ class Mytest(unittest.TestCase):
 
         (RouteId('test_direct_nest_first').to(direct('test_direct_nest_second'))) #yapf: disable
         (RouteId('test_direct_nest_second').to(direct('test_direct_nest_third'))) #yapf: disable
-        (RouteId('test_direct_nest_third').process(lambda ex: ex.set_body('nest_success'))) #yapf: disable
+        (RouteId('test_direct_nest_third').process(set_body('nest_success'))) #yapf: disable
         ((Any().to(direct('test_direct_nest_first'))
             .assert_('test_direct_nest_0', self.assertEqual, body(), 'nest_success'))
         ).send_to_sync() #yapf: disable
@@ -44,8 +46,8 @@ class Mytest(unittest.TestCase):
     def test_cache(self):
         from cachetools import LRUCache
         (RouteId('test_cache_request')
-            .process(lambda ex: ex.set_header('process_flag', True))
-            .process(lambda ex: ex.set_body('response'))) #yapf: disable
+            .process(set_header('process_flag', True))
+            .process(set_body('response'))) #yapf: disable
         route = (Any().to(cache({
                 'to': To(direct('test_cache_request')),
                 'keys': [header('key')],
@@ -80,3 +82,25 @@ class Mytest(unittest.TestCase):
             })
             .assert_('test_split_aggregate_1', self.assertEqual, body(), aggregated_body)
         ).send_to_sync(Exchange(send_body)) #yapf: disable
+
+    def test_sleep(self):
+        from datetime import datetime
+        sleep_time = 0.1
+        now = datetime.now()
+        (Any().sleep(sleep_time)).send_to_sync()
+        self.assertTrue(sleep_time * 1000000 <=
+                        (datetime.now() - now).microseconds)
+
+    def test_composer(self):
+        (Composer({
+            'id': 'test_composer',
+            'from': ['source_1', 'source_2', 'source_3'],
+            'compose':
+                lambda exchanges: ' and '.join([exchange.get_body() for exchange in exchanges]),
+            'wait_for_all': True,
+        }).assert_('test_composer_1', self.assertEqual, body(),'foo and bar and wao'))
+
+        #yapf: disable
+        (To(composer('test_composer', 'source_1'))).send_to_sync(Exchange('foo'))
+        (To(composer('test_composer', 'source_2'))).send_to_sync(Exchange('bar'))
+        (To(composer('test_composer', 'source_3'))).send_to_sync(Exchange('wao'))

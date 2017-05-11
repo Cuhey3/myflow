@@ -21,6 +21,7 @@ def log(params={}):
             print(log_name, 'exchange:body', exchange.get_body())
         if show_header:
             print(log_name, 'exchange:header', exchange.get_headers())
+        return exchange
 
     return processor
 
@@ -112,5 +113,19 @@ def zipper(params):
             zipFile = exchange.get_header('zipfile')
             zipFile.close()
             return exchange
+
+    return processor
+
+
+def composer(composer_id, source_name):
+    import copy, asyncio
+    from consumer import Composer
+    composer = Composer()
+
+    async def processor(exchange):
+        asyncio.get_event_loop().create_task(
+            composer.send_to(composer_id, source_name, copy.deepcopy(
+                exchange)))
+        return exchange
 
     return processor

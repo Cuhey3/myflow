@@ -86,3 +86,26 @@ class Aiohttp(Consumer):
         from aiohttp import web
         port = int(os.environ.get('PORT', 8080))
         web.run_app(self.__web_application, host='0.0.0.0', port=port)
+
+
+class Composer(Consumer):
+    __composer_mapping = None
+
+    def __init__(self, params=None):
+        if Composer.__composer_mapping is None:
+            Composer.__composer_mapping = {}
+        if params:
+            super().__init__(None, self)
+            composer_id = params.get('id')
+            Composer.__composer_mapping[composer_id] = self
+            self.compose = params.get('compose')
+            self.sources = {item: False for item in params.get('from')}
+
+    async def send_to(self, composer_id, source_name, exchange):
+        composer = Composer.__composer_mapping.get(composer_id)
+        if source_name in composer.sources:
+            composer.sources[source_name] = exchange
+            values = [v for k, v in composer.sources.items()]
+            if all(values):
+                exchange.set_body(composer.compose(values))
+                await composer.produce(exchange)

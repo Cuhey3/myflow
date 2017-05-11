@@ -5,6 +5,28 @@ def body(key=None):
     return evaluater
 
 
+def get_body():
+    def func(exchange):
+        return exchange.get_body()
+
+    return func
+
+
+def set_body(expression):
+    if callable(expression):
+
+        def func(exchange):
+            exchange.set_body(expression(exchange))
+
+        return func
+    else:
+
+        def func(exchange):
+            exchange.set_body(expression)
+
+        return func
+
+
 def header(key=None):
     def evaluater(exchange):
         return __dig_dict(key, exchange.get_headers())
@@ -12,12 +34,34 @@ def header(key=None):
     return evaluater
 
 
-def exists(func):
+def get_header(header_key):
+    def func(exchange):
+        return exchange.get_header(header_key)
+
+    return func
+
+
+def set_header(header_key, expression):
+    if callable(expression):
+
+        def func(exchange):
+            exchange.set_header(header_key, expression(exchange))
+
+        return func
+    else:
+
+        def func(exchange):
+            exchange.set_header(header_key, expression)
+
+        return func
+
+
+def exists(expression):
     def evaluater(exchange):
-        if callable(func):
-            return func(exchange) is not None
+        if callable(expression):
+            return expression(exchange) is not None
         else:
-            return func is not None
+            return expression is not None
 
     return evaluater
 
