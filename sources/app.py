@@ -1,6 +1,6 @@
 from consumer import *
 from routes import markdown_route
+from components import aiohttp_request
+from evaluator import *
 ## TBD: await Aiohttp().run()
-Aiohttp().application().router.add_static(
-    prefix='/public/static', path='../public/static')
 Aiohttp().run()

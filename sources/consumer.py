@@ -1,5 +1,6 @@
 from producer import Producer
 from custom_processor import *
+from aiohttp import web
 
 
 class Consumer(Producer):
@@ -60,7 +61,6 @@ class Aiohttp(Consumer):
 
     def __init__(self, uri=None):
         if Aiohttp.__web_application is None:
-            from aiohttp import web
             Aiohttp.__web_application = web.Application()
         if uri:
             super().__init__(None, self)

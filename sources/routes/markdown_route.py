@@ -12,3 +12,6 @@ from evaluator import body, set_header
         }
     }))
 ) #yapf: disable
+
+Aiohttp().application().router.add_static(
+    prefix='/public/static', path='../public/static')
