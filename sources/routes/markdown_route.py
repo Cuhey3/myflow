@@ -1,9 +1,14 @@
 from consumer import Aiohttp
-from components import file, markdown
-from evaluator import set_header
+from components import file, markdown, jinja2
+from evaluator import body, set_header
 
 (Aiohttp('/markdown')
     .to(file({'file_name': lambda ex: '../public/static/' + ex.get_header('file')}))
     .to(markdown())
-    .process(set_header('content-type', 'text/html'))
+    .to(jinja2({
+        'template': 'markdown.html',
+        'data': {
+            'markdown_body': body()
+        }
+    }))
 ) #yapf: disable

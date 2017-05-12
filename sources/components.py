@@ -160,3 +160,19 @@ def markdown(params=None):
         return exchange
 
     return processor
+
+
+def jinja2(params):
+    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    template = Environment(loader=FileSystemLoader(
+        '../public/static/templates',
+        encoding='utf8')).get_template(params.get('template'))
+    data_expression = params.get('data')
+
+    async def processor(exchange):
+        data = evaluate_expression(data_expression, exchange)
+        exchange.set_body(template.render(data))
+        exchange.set_header('content-type', 'text/html')
+        return exchange
+
+    return processor
