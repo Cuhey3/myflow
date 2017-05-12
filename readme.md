@@ -10,10 +10,10 @@ Myflow（仮）はPython用のデータフローフレームワークです。
 - asyncio.coroutineベースで非同期、軽量に実行可能
 - 各種Pythonライブラリのラッパーを記述することでデータフローに組み込むことが可能
     - 実装済みラッパー: aiohttp, jinja2, markdown, cachetools, beautifulsoup
-- [Enterprise Integration Patterns](http://camel.apache.org/enterprise-integration-patterns.html)の多くを実装。
-し、複雑なデータの分岐、集約、イベント処理が可能
+- [Enterprise Integration Patterns](http://camel.apache.org/enterprise-integration-patterns.html)の多くを実装し、複雑なデータの分岐、集約、イベント処理が可能
 <br>
 <br>
+
 ## フレームワークの構成要素
 
 ### Exchange
