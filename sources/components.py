@@ -129,3 +129,34 @@ def composer(composer_id, source_name):
         return exchange
 
     return processor
+
+
+def file(params):
+    mode = params.get('mode') or 'read'
+    file_name_expression = params.get('file_name') or body()
+
+    #TBD: other mode
+    #TBD: file cache
+    async def processor(exchange):
+        if mode == 'read':
+            file_name = evaluate_expression(file_name_expression, exchange)
+            f = open(file_name, 'r')
+            exchange.set_body(f.read())
+            f.close()
+        return exchange
+
+    return processor
+
+
+def markdown(params=None):
+    import markdown as markdown_module
+    expression = body()
+    if params is not None and params.get('expression'):
+        expression = params.get('expression')
+
+    async def processor(exchange):
+        value = evaluate_expression(expression, exchange)
+        exchange.set_body(markdown_module.markdown(value))
+        return exchange
+
+    return processor

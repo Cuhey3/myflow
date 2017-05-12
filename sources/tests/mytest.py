@@ -1,7 +1,7 @@
 import unittest
 from consumer import Any, RouteId, To, Composer
 from exchange import Exchange
-from components import direct, cache, log, composer
+from components import direct, cache, log, composer, file, markdown
 from evaluator import *
 
 
@@ -104,3 +104,14 @@ class Mytest(unittest.TestCase):
         (To(composer('test_composer', 'source_1'))).send_to_sync(Exchange('foo'))
         (To(composer('test_composer', 'source_2'))).send_to_sync(Exchange('bar'))
         (To(composer('test_composer', 'source_3'))).send_to_sync(Exchange('wao'))
+
+    def test_file_and_markdown(self):
+        (Any()
+            .to(file({
+                'mode': 'read',
+                'file_name': '../public/static/test_file.md'
+            }))
+            .assert_('test_file_and_markdown_1', self.assertEqual, body(), '# this is markdown file')
+            .to(markdown())
+            .assert_('test_file_and_markdown_2', self.assertEqual, body(), '<h1>this is markdown file</h1>')
+        ).send_to_sync() #yapf: disalbe
