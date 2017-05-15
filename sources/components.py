@@ -30,24 +30,73 @@ from cachetools import cached, hashkey
 
 
 def cache(params):
-    to = params.get('to')
+    method = params.get('method') or 'get'
     keys_expression = params.get('keys')
     cache_object = params.get('cache_object')
     assert isinstance(keys_expression, list), 'keys parameter must be list.'
 
-    async def processor(exchange):
-        cache_key = hashkey(
-            tuple(evaluate_expression(keys_expression, exchange)))
-        if cache_key in cache_object:
-            exchange.set_body(cache_object.get(cache_key))
-            print('cache loaded', cache_key)
-        else:
-            exchange = await to.get_consumer().produce(exchange)
-            cache_object[cache_key] = exchange.get_body()
-            print('cache saved', cache_key)
-        return exchange
+    if method == 'set':
 
-    return processor
+        async def processor(exchange):
+            cache_key = hashkey(
+                tuple(evaluate_expression(keys_expression, exchange)))
+            cache_object[cache_key] = exchange.get_body()
+            return exchange
+
+        return processor
+
+    elif method == 'get':
+
+        async def processor(exchange):
+            cache_key = hashkey(
+                tuple(evaluate_expression(keys_expression, exchange)))
+            if cache_key in cache_object:
+                exchange.set_body(cache_object.get(cache_key))
+            else:
+                to = params.get('to')
+                if to:
+                    exchange = await to.get_consumer().produce(exchange)
+                    cache_object[cache_key] = exchange.get_body()
+            return exchange
+
+        return processor
+
+
+def redis_cache(params):
+    # TBD: to = params.get('to')
+    method = params.get('method') or 'get'
+    keys_expression = params.get('keys')
+    conn_setting = params.get('conn')
+    conn = None
+    assert isinstance(keys_expression, list), 'keys parameter must be list.'
+    import aioredis
+    import json
+    if method == 'set':
+
+        async def processor(exchange):
+            nonlocal conn
+            if conn is None or conn.closed:
+                conn = await aioredis.create_connection(**conn_setting)
+                print('redis connected')
+            cache_key = str(evaluate_expression(keys_expression, exchange))
+            await conn.execute('set', cache_key,
+                               json.dumps(exchange.get_body()))
+            return exchange
+
+        return processor
+
+    elif method == 'get':
+
+        async def processor(exchange):
+            nonlocal conn
+            if conn is None or conn.closed:
+                conn = await aioredis.create_connection(**conn_setting)
+                print('redis connected')
+            cache_key = str(evaluate_expression(keys_expression, exchange))
+            exchange.set_body(json.loads(await conn.execute('get', cache_key)))
+            return exchange
+
+        return processor
 
 
 def aiohttp_request(params={}):
@@ -162,7 +211,7 @@ def markdown(params=None):
     return processor
 
 
-def jinja2(params):
+def jinja2_(params):
     from jinja2 import Environment, FileSystemLoader, select_autoescape
     template = Environment(loader=FileSystemLoader(
         '../public/static/templates',

@@ -1,0 +1,66 @@
+<html>
+    <head>
+        <script>
+            function reload(param){
+                document.location.href='/antenna?method=update&id=' + param;
+            }
+            function send(){
+                var element = document.getElementsByName('name')[0];
+                if(element.value){
+                    var value = element.value;
+                    element.value = '';
+                    document.location.href='/antenna?method=create&name=' + value + '&url=' + document.getElementsByName('url')[0].value;
+                }
+            }
+            function deleteItem(param){
+                if(window.confirm(param + '番を削除します。')){
+                    document.location.href='/antenna?method=delete&id=' + param;
+                }
+            }
+
+        </script>
+    </head>
+    <body>
+        <h2>いろいろ巡回ツール</h2>
+        <table>
+            <tr>
+                <th>タイトル</th>
+                <td><input type="text" name="name"></input></td>
+            </tr>
+            <tr>
+                <th>URL</th>
+                <td><input type="text" name="url"></input></td>
+            </tr>
+            <tr>
+                <td><input type="button" onclick="send()" value="作成"></td>
+                <td></td>
+            </tr>
+        </table>
+
+        <table border="1">
+            <tr>
+                <th>id</th>
+                <th>前回</th>
+                <th>タイトル</th>
+                <th>URL</th>
+                <th>削除</th>
+            </tr>
+            {% for item in items %}
+            <tr>
+                <td>{{item.id}}</td>
+                <td>{{item.past}}</td>
+                <td>
+                    <a href="{{item.url or '#'}}" onclick='setTimeout(reload("{{item.id | escape}}"), 10)' {% if item.url %}target=_blank{% endif %}>
+                        {{item.name | escape}}
+                    </a>
+                <td>
+                    {% if item.url %}<a href="{{item.url}}" target=_blank>{{item.url}}</a>{% endif %}
+                </td>
+                <td>
+                    <input type="button" value="削除" onclick="deleteItem('{{item.id | escape}}')">
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </body>
+</html>

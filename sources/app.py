@@ -1,6 +1,4 @@
-from consumer import *
-from routes import markdown_route
-from components import aiohttp_request
-from evaluator import *
+from consumer import Aiohttp
+from routes import myantenna
 ## TBD: await Aiohttp().run()
 Aiohttp().run()

@@ -57,13 +57,20 @@ def set_header(header_key, expression):
 
 
 def exists(expression):
-    def evaluater(exchange):
+    def evaluator(exchange):
         if callable(expression):
             return expression(exchange) is not None
         else:
             return expression is not None
 
-    return evaluater
+    return evaluator
+
+
+def isEqualTo(expression, value):
+    def evaluator(exchange):
+        return expression(exchange) == value
+
+    return evaluator
 
 
 # header('foo.bar') => value
