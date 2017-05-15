@@ -214,8 +214,9 @@ def markdown(params=None):
 def jinja2_(params):
     from jinja2 import Environment, FileSystemLoader, select_autoescape
     template = Environment(loader=FileSystemLoader(
-        '../public/static/templates',
-        encoding='utf8')).get_template(params.get('template'))
+        '../public/static/templates', encoding='utf8') or FileSystemLoader(
+            'public/static/templates',
+            encoding='utf8')).get_template(params.get('template'))
     data_expression = params.get('data')
 
     async def processor(exchange):
