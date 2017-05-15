@@ -9,7 +9,10 @@
                 if(element.value){
                     var value = element.value;
                     element.value = '';
-                    document.location.href='/antenna?method=create&name=' + value + '&url=' + document.getElementsByName('url')[0].value;
+                    select = document.getElementsByName('span')[0]
+                    document.location.href='/antenna?method=create&name=' + value
+                        + '&url=' + document.getElementsByName('url')[0].value
+                        + '&span=' + select.options[select.selectedIndex].value;
                 }
             }
             function deleteItem(param){
@@ -19,6 +22,19 @@
             }
 
         </script>
+        <style>
+            table{
+                margin: 10px;
+            }
+            table,th,td {
+                padding: 4px;
+                border: 1px solid #666;
+                border-collapse: collapse;
+            }
+            .future{
+                background-color:#999;
+            }
+        </style>
     </head>
     <body>
         <h2>いろいろ巡回ツール</h2>
@@ -32,23 +48,37 @@
                 <td><input type="text" name="url"></input></td>
             </tr>
             <tr>
+                <th>周期</th>
+                <td>
+                    <select name="span">
+                        {% for span_item in span_list %}
+                        <option value="{{span_item.key}}">{{span_item.text}}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+            </tr>
+            <tr>
                 <td><input type="button" onclick="send()" value="作成"></td>
                 <td></td>
             </tr>
         </table>
 
-        <table border="1">
+        <table>
             <tr>
                 <th>id</th>
+                <th>周期</th>
                 <th>前回</th>
+                <th>次回</th>
                 <th>タイトル</th>
                 <th>URL</th>
                 <th>削除</th>
             </tr>
             {% for item in items %}
-            <tr>
+            <tr{% if item.get('next','') > now %} class="future" {% endif %}>
                 <td>{{item.id}}</td>
+                <th>{{util.span_key_to_text(item.span)}}</th>
                 <td>{{item.past}}</td>
+                <td>{% if item.next %}{{item.next}}{% endif %}</td>
                 <td>
                     <a href="{{item.url or '#'}}" onclick='setTimeout(reload("{{item.id | escape}}"), 10)' {% if item.url %}target=_blank{% endif %}>
                         {{item.name | escape}}

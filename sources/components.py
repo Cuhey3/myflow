@@ -225,6 +225,8 @@ def jinja2_(params):
 
     async def processor(exchange):
         data = evaluate_expression(data_expression, exchange)
+        if 'util' in params:
+            data.update({'util': params.get('util')})
         exchange.set_body(template.render(data))
         exchange.set_header('content-type', 'text/html')
         return exchange
