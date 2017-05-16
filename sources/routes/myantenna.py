@@ -2,7 +2,7 @@ import asyncio
 import os
 from urllib.parse import urlparse
 from consumer import Aiohttp, Any, To, RouteId
-from components import cache, direct, log, redis_cache, jinja2_
+from components import cache, direct, log, redis_cache, jinja2_, redirect
 from evaluator import set_body, body, header, exists, isEqualTo
 from cachetools import LRUCache
 from settings.antenna_settings import span_option
@@ -49,10 +49,10 @@ def sort_func(exchange):
     items = exchange.get_body()
     now = datetime.now(pytz.timezone('Asia/Tokyo')).strftime("%Y/%m/%d")
     #yapf: disable
-    group1 = [item for item in items if item.get('next', '') == now]
-    group2 = [item for item in items if 'next' in item and item.get('next') < now]
-    group3 = [item for item in items if item.get('next', '') == '']
-    group4 = [item for item in items if item.get('next', '') > now]
+    group1 = [item for item in items if item.get('next') == now]
+    group2 = [item for item in items if item.get('next') != '' and item.get('next') < now]
+    group3 = [item for item in items if item.get('next') == '']
+    group4 = [item for item in items if item.get('next') > now]
     group1 = sorted(group1, key=lambda item: item.get('span', '') + item.get('past', ''))
     group2 = sorted(group2, key=lambda item: item.get('next', '') + item.get('span', '') + item.get('past', ''))
     group3 = sorted(group3, key=lambda item: item.get('past', ''))
@@ -72,17 +72,18 @@ async def update_time(exchange):
 (Aiohttp('/antenna')
     .to(cache_get_processor)
     .when([
-        (exists(header('method')), To(direct('antenna_crud'))),
-        (True, Any())])
-    .to(jinja2_({
-        'template': 'antenna.html',
-        'data':{
-            'items': body(),
-            'span_list': span_option,
-            'now': get_now
-            },
-        'util': create_util()
-    }))
+        (exists(header('method')),
+            To(direct('antenna_crud')).to(redirect('/antenna'))),
+        (True,
+            To(jinja2_({
+                'template': 'antenna.html',
+                'data':{
+                    'items': body(),
+                    'span_list': span_option,
+                    'now': get_now
+                    },
+                'util': create_util()
+            })))])
 ) #yapf: disable
 
 (RouteId('antenna_crud')
@@ -95,11 +96,23 @@ async def update_time(exchange):
     .to(cache_set_processor)
 )#yapf: disable
 
+
+def item_update_by_exchange(item, exchange):
+    headers = exchange.get_headers()
+    if 'span' in headers and 'name' in headers and 'url' in headers:
+        item['span'] = exchange.get_header('span')
+        item['name'] = exchange.get_header('name')
+        item['url'] = exchange.get_header('url')
+        calc_date_from_span(item, True)
+    else:
+        calc_date_from_span(item)
+    return item
+
 (RouteId('antenna_update')
     .process(lambda ex:
         [item for item in ex.get_body()
             if str(item['id']) != ex.get_header('id')]
-            + [calc_date_from_span(item) for item in ex.get_body()
+            + [item_update_by_exchange(item, ex) for item in ex.get_body()
                 if str(item['id']) == ex.get_header('id')])
     .to(update_time)
 ) #yapf: disable

@@ -1,5 +1,6 @@
 <html>
     <head>
+        <title>いろいろ巡回ツール</title>
         <script>
             function reload(param){
                 document.location.href='/antenna?method=update&id=' + param;
@@ -9,7 +10,7 @@
                 if(element.value){
                     var value = element.value;
                     element.value = '';
-                    select = document.getElementsByName('span')[0]
+                    var select = document.getElementsByName('span')[0];
                     document.location.href='/antenna?method=create&name=' + value
                         + '&url=' + document.getElementsByName('url')[0].value
                         + '&span=' + select.options[select.selectedIndex].value;
@@ -18,6 +19,41 @@
             function deleteItem(param){
                 if(window.confirm(param + '番を削除します。')){
                     document.location.href='/antenna?method=delete&id=' + param;
+                }
+            }
+            function load(id){
+                var row = document.getElementById('tr-id-' + id);
+                document.getElementsByName('name')[0].value = row.children[4].children[0].text;
+                var href = row.children[4].children[0].href;
+                if(href != 'javascript:void(0)'){
+                    document.getElementsByName('url')[0].value = href;
+                }
+                document.getElementsByName('id_')[0].value = id;
+                var expression = row.children[1].innerHTML;
+                var options = document.getElementsByTagName('option');
+                for(var i = 0; i < options.length; i++){
+                    if(options[i].innerHTML == expression){
+                        document.getElementsByName('span')[0].selectedIndex = i;
+                    }
+                }
+            }
+            function update(){
+                var id_ = document.getElementsByName('id_')[0].value;
+                if(id_){
+                    if(window.confirm(id_ + '番を上書きしますか？')){
+                        var element = document.getElementsByName('name')[0];
+                        if(element.value){
+                            var value = element.value;
+                            element.value = '';
+                            var select = document.getElementsByName('span')[0];
+                            document.location.href='/antenna?method=update&id=' + id_
+                                + '&name=' + value
+                                + '&url=' + document.getElementsByName('url')[0].value
+                                + '&span=' + select.options[select.selectedIndex].value;
+                        }
+                    }
+                }else{
+                    send();
                 }
             }
 
@@ -58,8 +94,11 @@
                 </td>
             </tr>
             <tr>
-                <td><input type="button" onclick="send()" value="作成"></td>
-                <td></td>
+                <td colspan="2">
+                    <input type="button" onclick="send()" value="作成">
+                    <input type="button" onclick="update()" value="上書き">
+                    <input type="hidden" name="id_">
+                </td>
             </tr>
         </table>
 
@@ -74,15 +113,13 @@
                 <th>削除</th>
             </tr>
             {% for item in items %}
-            <tr{% if item.get('next','') > now %} class="future" {% endif %}>
-                <td>{{item.id}}</td>
+            <tr id="tr-id-{{item.id}}"{% if item.get('next','') > now %} class="future" {% endif %}>
+                <td onclick="load('{{item.id}}')">{{item.id}}</td>
                 <th>{{util.span_key_to_text(item.span)}}</th>
                 <td>{{item.past}}</td>
                 <td>{% if item.next %}{{item.next}}{% endif %}</td>
                 <td>
-                    <a href="{{item.url or '#'}}" onclick='setTimeout(reload("{{item.id | escape}}"), 10)' {% if item.url %}target=_blank{% endif %}>
-                        {{item.name | escape}}
-                    </a>
+                    <a href="{{item.url or 'javascript:void(0)'}}" onclick='setTimeout(reload("{{item.id | escape}}"), 10)' {% if item.url %}target=_blank{% endif %}>{{item.name | escape}}</a>
                 <td>
                     {% if item.url %}<a href="{{item.url}}" target=_blank>{{item.url}}</a>{% endif %}
                 </td>

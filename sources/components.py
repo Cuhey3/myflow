@@ -232,3 +232,17 @@ def jinja2_(params):
         return exchange
 
     return processor
+
+
+def redirect(url_func):
+    async def processor(exchange):
+        if callable(url_func):
+            url = url_func(exchange)
+        else:
+            url = url_func
+        html = "<script>document.location.href='{}'</script>".format(url)
+        exchange.set_body(html)
+        exchange.set_header('content-type', 'text/html')
+        return exchange
+
+    return processor

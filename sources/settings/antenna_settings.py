@@ -9,10 +9,10 @@ span_option = [
     {'key': 'w_fri', 'text': '金曜'},
     {'key': 'w_sat', 'text': '土曜'},
     {'key': 'w_sun', 'text': '日曜'},
-    {'key': 'every_1d', 'text': '1日おき'},
-    {'key': 'every_2d', 'text': '2日おき'},
-    {'key': 'every_3d', 'text': '3日おき'},
-    {'key': 'every_10d', 'text': '10日おき'},
+    {'key': 'every_1d', 'text': '1日'},
+    {'key': 'every_2d', 'text': '2日'},
+    {'key': 'every_3d', 'text': '3日'},
+    {'key': 'every_10d', 'text': '10日'},
 ]
 
 span_to_weekday = {
