@@ -3,14 +3,14 @@ from settings.antenna_settings import span_to_weekday
 
 def calc_date_from_span(item, prev=False):
     span = item.get('span', '')
-    if span == '' or span == 'sometime':
+    if span == '' or span == 'sometime' or span == 'complete':
         next_ = ''
     else:
         import pytz
         from datetime import datetime
         from datetime import timedelta
         now = datetime.now(pytz.timezone('Asia/Tokyo'))
-        if span == 'daily':
+        if span == 'daily' or span == 'once':
             deltadays = 0 if prev else 1
             next_ = (now + timedelta(days=deltadays)).strftime("%Y/%m/%d")
         elif span.startswith('every_'):

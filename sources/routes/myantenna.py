@@ -51,22 +51,26 @@ def sort_func(exchange):
     #yapf: disable
     group1 = [item for item in items if item.get('next') == now]
     group2 = [item for item in items if item.get('next') != '' and item.get('next') < now]
-    group3 = [item for item in items if item.get('next') == '']
+    group3 = [item for item in items if item.get('next') == '' and item.get('span') != 'complete']
     group4 = [item for item in items if item.get('next') > now]
+    group5 = [item for item in items if item.get('span') == 'complete']
     group1 = sorted(group1, key=lambda item: item.get('span', '') + item.get('past', ''))
     group2 = sorted(group2, key=lambda item: item.get('next', '') + item.get('span', '') + item.get('past', ''))
     group3 = sorted(group3, key=lambda item: item.get('past', ''))
     group4 = sorted(group4, key=lambda item: item.get('next', '') + item.get('span', '') + item.get('past', ''))
+    group5 = sorted(group5, key=lambda item: item.get('past',''))
     #yapf: enable
-    return group1 + group2 + group3 + group4
+    return group1 + group2 + group3 + group4 + group5
 
 
 async def update_time(exchange):
-    id_ = exchange.get_header('id')
-    for item in exchange.get_body():
-        if str(item['id']) == id_:
-            item['past'] = datetime.now(
-                pytz.timezone('Asia/Tokyo')).strftime("%Y/%m/%d %H:%M")
+    if exchange.get_header('reserve', '') != 'true' and exchange.get_header(
+            'current', '') != 'true':
+        id_ = exchange.get_header('id')
+        for item in exchange.get_body():
+            if str(item['id']) == id_:
+                item['past'] = datetime.now(
+                    pytz.timezone('Asia/Tokyo')).strftime("%Y/%m/%d %H:%M")
     return exchange
 
 (Aiohttp('/antenna')
@@ -103,9 +107,12 @@ def item_update_by_exchange(item, exchange):
         item['span'] = exchange.get_header('span')
         item['name'] = exchange.get_header('name')
         item['url'] = exchange.get_header('url')
-        calc_date_from_span(item, True)
+    if exchange.get_header('finish', 'false') == 'true':
+        item['span'] = 'complete'
+        item['next'] = ''
     else:
-        calc_date_from_span(item)
+        current = exchange.get_header('current', 'false')
+        calc_date_from_span(item, current == 'true')
     return item
 
 (RouteId('antenna_update')
@@ -126,7 +133,7 @@ def item_update_by_exchange(item, exchange):
 (RouteId('antenna_create')
     .process(lambda ex:
         ex.set_body(
-            [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'span': ex.get_header('span', '')}, True)]
+            [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'span': ex.get_header('span', '')}, ex.get_header('url', '') == '')]
             + ex.get_body()))
     .to(update_id)
 ) #yapf: disable

@@ -1,6 +1,7 @@
 #yapf: disable
 span_option = [
     {'key': 'sometime', 'text': ''},
+    {'key': 'once', 'text': '一度'},
     {'key': 'daily', 'text': '毎日'},
     {'key': 'w_mon', 'text': '月曜'},
     {'key': 'w_tue', 'text': '火曜'},
@@ -13,6 +14,7 @@ span_option = [
     {'key': 'every_2d', 'text': '2日'},
     {'key': 'every_3d', 'text': '3日'},
     {'key': 'every_10d', 'text': '10日'},
+    {'key': 'complete', 'text': '完了'}
 ]
 
 span_to_weekday = {
