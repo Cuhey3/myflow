@@ -94,7 +94,7 @@
                 border-collapse: collapse;
             }
             .future{
-                background-color:#999;
+                background-color:#ccc;
             }
         </style>
     </head>
@@ -128,7 +128,7 @@
                 </td>
             </tr>
         </table>
-
+        <p>今日のタスク: {{util.count(items, util.is_current_uncomplete)}}<br>その他の未完了タスク: {{util.count(items, util.is_future_uncomplete)}}</p>
         <table>
             <tr>
                 <th>id</th>
@@ -140,16 +140,16 @@
                 <th>操作</th>
             </tr>
             {% for item in items %}
-            <tr id="tr-id-{{item.id}}"{% if item.get('next','') > now or item.span == 'complete' %} class="future" {% endif %}>
+            <tr id="tr-id-{{item.id}}"{% if util.is_future(item) or item.span == 'complete' %} class="future" {% endif %}>
                 <td onclick="load('{{item.id}}')">{{item.id}}</td>
                 <th>{{util.span_key_to_text(item.span)}}</th>
                 <td>{{item.past}}</td>
                 <td>{% if item.next %}{{item.next}}{% endif %}</td>
-                <td>{% if item.span == 'complete' %}{{item.name | escape}}{% else %}<a href="{% if item.url and item.get('next','') <= now %}{{item.url}}{% else %}javascript:void(0){% endif %}"
-                        onclick='setTimeout({% if item.span == "once" and item.get('next','') <= now %}finish("{{item.id}}"){% else %}reload("{{item.id | escape}}", {% if item.get('next','') > now %}true{% else %}false{% endif %}){% endif %}, 10)' {% if item.url and item.get('next','') <= now %}target=_blank{% endif %}>{{item.name | escape}}</a>{% endif %}</td>
+                <td>{% if item.span == 'complete' %}{{item.name | escape}}{% else %}<a href="{% if item.url and util.is_current(item) %}{{item.url}}{% else %}javascript:void(0){% endif %}"
+                        onclick='setTimeout({% if item.span == "once" and util.is_current(item) %}finish("{{item.id}}"){% else %}reload("{{item.id | escape}}", {% if util.is_future(item) %}true{% else %}false{% endif %}){% endif %}, 10)' {% if item.url and util.is_current(item) %}target=_blank{% endif %}>{{item.name | escape}}</a>{% endif %}</td>
                 <td>{% if item.url %}<a href="{{item.url}}" target=_blank>{{item.url}}</a>{% endif %}</td>
                 <td>
-                    {% if item.get('next','') > now or item.get('next', '') == '' or item.span == 'complete' %}
+                    {% if util.is_future(item) or item.get('next', '') == '' or item.span == 'complete' %}
                         <input type="button" value="削除" onclick="deleteItem('{{item.id}}')">
                     {% else %}
                         <input type="button" value="保留" onclick="reserveItem('{{item.id}}')">
