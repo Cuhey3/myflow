@@ -103,10 +103,11 @@ async def update_time(exchange):
 
 def item_update_by_exchange(item, exchange):
     headers = exchange.get_headers()
-    if 'span' in headers and 'name' in headers and 'url' in headers:
+    if 'span' in headers and 'name' in headers and 'url' in headers and 'memo' in headers:
         item['span'] = exchange.get_header('span')
         item['name'] = exchange.get_header('name')
         item['url'] = exchange.get_header('url')
+        item['memo'] = exchange.get_header('memo')
     if exchange.get_header('finish', 'false') == 'true':
         item['span'] = 'complete'
         item['next'] = ''
@@ -133,7 +134,10 @@ def item_update_by_exchange(item, exchange):
 (RouteId('antenna_create')
     .process(lambda ex:
         ex.set_body(
-            [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'span': ex.get_header('span', '')}, ex.get_header('url', '') == '')]
+            [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'memo': ex.get_header('memo', ''), 'span': ex.get_header('span', '')}, ex.get_header('url', '') == '')]
             + ex.get_body()))
     .to(update_id)
 ) #yapf: disable
+
+Aiohttp().application().router.add_static(
+    prefix='/public/static', path='../public/static')

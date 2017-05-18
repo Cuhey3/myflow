@@ -20,6 +20,7 @@
                     var select = document.getElementsByName('span')[0];
                     document.location.href='/antenna?method=create&name=' + value
                         + '&url=' + document.getElementsByName('url')[0].value
+                        + '&memo=' + document.getElementsByName('memo')[0].value
                         + '&span=' + select.options[select.selectedIndex].value;
                 }
             }
@@ -46,6 +47,7 @@
                         }
                     }
                 }
+                document.getElementsByName('memo')[0].value = row.children[5].innerHTML
                 var next = row.children[3].innerHTML;
                 document.getElementsByName('current')[0].value = next <= now;
                 document.getElementsByName('id_')[0].value = id;
@@ -56,6 +58,7 @@
                         document.getElementsByName('span')[0].selectedIndex = i;
                     }
                 }
+                window.scrollTo(0, 0);
             }
             function update(){
                 var id_ = document.getElementsByName('id_')[0].value;
@@ -69,6 +72,7 @@
                             document.location.href='/antenna?method=update&id=' + id_
                                 + '&name=' + value
                                 + '&url=' + document.getElementsByName('url')[0].value
+                                + '&memo=' + document.getElementsByName('memo')[0].value
                                 + '&span=' + select.options[select.selectedIndex].value
                                 + '&current=' + document.getElementsByName('current')[0].value;
                         }
@@ -110,6 +114,10 @@
                 <td><input type="text" name="url"></input></td>
             </tr>
             <tr>
+                <th>メモ</th>
+                <td><input type="text" name="memo"></input></td>
+            </tr>
+            <tr>
                 <th>周期</th>
                 <td>
                     <select name="span">
@@ -136,7 +144,7 @@
                 <th>前回</th>
                 <th>次回</th>
                 <th>タイトル</th>
-                <th>URL</th>
+                <th>メモ</th>
                 <th>操作</th>
             </tr>
             {% for item in items %}
@@ -147,7 +155,7 @@
                 <td>{% if item.next %}{{item.next}}{% endif %}</td>
                 <td>{% if item.span == 'complete' %}{{item.name | escape}}{% else %}<a href="{% if item.url and util.is_current(item) %}{{item.url}}{% else %}javascript:void(0){% endif %}"
                         onclick='setTimeout({% if item.span == "once" and util.is_current(item) %}finish("{{item.id}}"){% else %}reload("{{item.id | escape}}", {% if util.is_future(item) %}true{% else %}false{% endif %}){% endif %}, 10)' {% if item.url and util.is_current(item) %}target=_blank{% endif %}>{{item.name | escape}}</a>{% endif %}</td>
-                <td>{% if item.url %}<a href="{{item.url}}" target=_blank>{{item.url}}</a>{% endif %}</td>
+                <td>{{item.memo}}</td>
                 <td>
                     {% if util.is_future(item) or item.get('next', '') == '' or item.span == 'complete' %}
                         <input type="button" value="削除" onclick="deleteItem('{{item.id}}')">
