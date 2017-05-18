@@ -139,5 +139,5 @@ def item_update_by_exchange(item, exchange):
     .to(update_id)
 ) #yapf: disable
 
-Aiohttp().application().router.add_static(
-    prefix='/public/static', path='../public/static')
+#Aiohttp().application().router.add_static(
+#    prefix='/public/static', path='../public/static')
