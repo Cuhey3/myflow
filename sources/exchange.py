@@ -32,3 +32,7 @@ class Exchange:
 
         child.parent = access_parent
         return child
+
+    def to_json(self):
+        import json
+        return json.dumps({'body': self.body, 'header': self.header})

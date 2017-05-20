@@ -88,6 +88,22 @@ class Aiohttp(Consumer):
         web.run_app(self.__web_application, host='0.0.0.0', port=port)
 
 
+class Client(Consumer):
+    def __init__(self, uri):
+        super().__init__(None, self)
+
+        async def handle(request):
+            obj = await request.json()
+            exchange = Exchange(obj['body'], obj['header'])
+            for key in request.rel_url.query:
+                exchange.set_header(key, request.rel_url.query.get(key))
+            exchange = await self.produce(exchange)
+            return web.Response(
+                text=exchange.to_json(), content_type='application/json')
+
+        Aiohttp().application().router.add_post(uri, handle)
+
+
 class Composer(Consumer):
     __composer_mapping = None
 

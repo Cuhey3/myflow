@@ -1,4 +1,4 @@
 from consumer import Aiohttp
-from routes import myantenna
+from routes import myantenna, myif
 ## TBD: await Aiohttp().run()
 Aiohttp().run()

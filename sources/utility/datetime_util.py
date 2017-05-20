@@ -26,7 +26,9 @@ def calc_date_from_span(item, prev=False):
                 deltadays = 10
             next_ = (now + timedelta(days=deltadays)).strftime("%Y/%m/%d")
         elif span.startswith('w_'):
-            deltadays = (span_to_weekday.get(span) - now.weekday()) or 7
+            deltadays = span_to_weekday.get(span) - now.weekday()
+            if deltadays < 1:
+                deltadays = deltadays + 7
             if prev:
                 deltadays = deltadays - 7
             next_ = (now + timedelta(days=deltadays)).strftime("%Y/%m/%d")

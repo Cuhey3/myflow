@@ -1,7 +1,7 @@
 import asyncio
 import os
 from urllib.parse import urlparse
-from consumer import Aiohttp, Any, To, RouteId
+from consumer import Aiohttp, Any, To, RouteId, Client
 from components import cache, direct, log, redis_cache, jinja2_, redirect
 from evaluator import set_body, body, header, exists, isEqualTo
 from cachetools import LRUCache
@@ -65,7 +65,8 @@ def sort_func(exchange):
 
 async def update_time(exchange):
     if exchange.get_header('reserve', '') != 'true' and exchange.get_header(
-            'current', '') != 'true':
+            'current', '') != 'true' and not exchange.get_header(
+                'time_no_update', False):
         id_ = exchange.get_header('id')
         for item in exchange.get_body():
             if str(item['id']) == id_:
@@ -103,15 +104,22 @@ async def update_time(exchange):
 
 def item_update_by_exchange(item, exchange):
     headers = exchange.get_headers()
+    span_changed_flag = True
     if 'span' in headers and 'name' in headers and 'url' in headers and 'memo' in headers:
-        item['span'] = exchange.get_header('span')
+        exchange_span = exchange.get_header('span')
+        if exchange_span != 'complete':
+            exchange.set_header('time_no_update', True)
+        if item['span'] == exchange_span:
+            span_changed_flag = False
+        item['span'] = exchange_span
         item['name'] = exchange.get_header('name')
         item['url'] = exchange.get_header('url')
         item['memo'] = exchange.get_header('memo')
     if exchange.get_header('finish', 'false') == 'true':
+        exchange.set_header('time_no_update', False)
         item['span'] = 'complete'
         item['next'] = ''
-    else:
+    elif span_changed_flag:
         current = exchange.get_header('current', 'false')
         calc_date_from_span(item, current == 'true')
     return item
@@ -137,6 +145,13 @@ def item_update_by_exchange(item, exchange):
             [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'memo': ex.get_header('memo', ''), 'span': ex.get_header('span', '')}, ex.get_header('url', '') == '')]
             + ex.get_body()))
     .to(update_id)
+) #yapf: disable
+
+
+(Client('/antenna-exchange')
+    .to(cache_get_processor)
+    .to(direct('antenna_crud'))
+    .process(lambda ex: ex.set_body('success'))
 ) #yapf: disable
 
 #Aiohttp().application().router.add_static(
