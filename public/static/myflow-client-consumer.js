@@ -93,17 +93,17 @@ Reply.prototype = Object.create(Consumer.prototype, {
 function Event(eventName, elements, groupName) {
     Consumer.call(this, null, this);
     var consumer = this;
-    if (!Array.isArray(elements)) {
+    if (!elements.forEach) {
         elements = [elements];
     }
-    for (var i = 0; i < elements.length; i++) {
-        var func = function() {
-            consumer.consume(new Exchange({}, {}, this));
-        };
-        elements[i][eventName] = func;
-        if (groupName) {
-            new EventGroup().putGroupEvent(groupName, eventName, func);
-        }
+    var func = function() {
+                consumer.consume(new Exchange({}, {}, this));
+    };
+    elements.forEach(function(element){
+        element[eventName] = func;
+    });
+    if (groupName) {
+        new EventGroup().putGroupEvent(groupName, eventName, func);
     }
 }
 

@@ -51,14 +51,14 @@ function request(uri) {
 }
 
 function buttonEnable(elements, bool) {
-    if (!Array.isArray(elements)) {
+    if (!elements.forEach) {
         elements = [elements];
     }
     var disable = bool === false;
     return function(exchange) {
-        for (var i = 0; i < elements.length; i++) {
-            elements[i].disabled = disable;
-        }
+        elements.forEach(function(element){
+            element.disabled = disable
+        });
         return exchange;
     }
 }

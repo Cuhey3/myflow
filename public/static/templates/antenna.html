@@ -11,16 +11,6 @@
             document.location.href = url;
         }
 
-        function reserveItem(id) {
-            document.location.href = '/antenna?method=update&id=' + id + '&reserve=true';
-        }
-
-        function deleteItem(param) {
-            if (window.confirm(param + '番を削除します。')) {
-                document.location.href = '/antenna?method=delete&id=' + param;
-            }
-        }
-
         function load(id) {
             var now = "{{now}}";
             var row = document.getElementById('tr-id-' + id);
@@ -102,10 +92,10 @@
                 <th>周期</th>
                 <td>
                     <select name="span">
-                                                {% for span_item in span_list %}
-                                                <option value="{{span_item.key}}">{{span_item.text}}</option>
-                                                {% endfor %}
-                                            </select>
+                        {% for span_item in span_list %}
+                        <option value="{{span_item.key}}">{{span_item.text}}</option>
+                        {% endfor %}
+                    </select>
                 </td>
             </tr>
             <tr>
@@ -140,8 +130,8 @@
             <td>{{item.memo}}</td>
             <td>
                 {% if util.is_future(item) or item.get('next', '') == '' or item.span == 'complete' %}
-                <input type="button" value="削除" onclick="deleteItem('{{item.id}}')"> {% else %}
-                <input type="button" value="保留" onclick="reserveItem('{{item.id}}')"> {% endif %}
+                <input type="button" value="削除" disabled> {% else %}
+                <input type="button" value="保留" disabled> {% endif %}
             </td>
         </tr>
         {% endfor %}
@@ -151,14 +141,40 @@
     <script src='/public/static/myflow-client-components.js'></script>
     <script src='/public/static/myflow-client-util.js'></script>
     <script>
-        var buttons = [byid('createButton'), byid('updateButton')];
+        var buttons = document.querySelectorAll('input[type=button]');
         new Event('onload', window)
             .to(buttonEnable(buttons))
             .to(log({
                 'name': 'ロード完了'
             }));
 
-        new Event('onclick', buttons)
+        new Event('onclick', document.querySelectorAll('input[value="保留"]'))
+            .to(buttonEnable(buttons, false))
+            .to(function(exchange){
+                var id = exchange.getElement().parentNode.parentNode.querySelector('td').innerText;
+                exchange.setHeader('id', id);
+                exchange.setHeader('method', 'update');
+                exchange.setHeader('reserve', 'true');
+                return exchange
+            })
+            .to(request('/antenna-exchange'));
+
+        new Event('onclick', document.querySelectorAll('input[value="削除"]'))
+            .to(buttonEnable(buttons, false))
+            .to(function(exchange){
+                var id = exchange.getElement().parentNode.parentNode.querySelector('td').innerText;
+                exchange.setHeader('id', id);
+                return exchange;
+            })
+            .to(function(exchange){
+                if(window.confirm(exchange.getHeader('id') + '番を削除します。')){
+                    exchange.setHeader('method', 'delete');
+                    return exchange;
+                }
+            })
+            .to(request('/antenna-exchange'));
+            
+        new Event('onclick', [document.querySelector('input[value="上書き"]'),document.querySelector('input[value="作成"]')])
             .to(buttonEnable(buttons, false))
             .to(formToExchange(byid('createForm')))
             .to(function(exchange) {
