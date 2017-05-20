@@ -154,5 +154,5 @@ def item_update_by_exchange(item, exchange):
     .process(lambda ex: ex.set_body('success'))
 ) #yapf: disable
 
-#Aiohttp().application().router.add_static(
-#    prefix='/public/static', path='../public/static')
+Aiohttp().application().router.add_static(
+    prefix='/public/static', path='../public/static')
