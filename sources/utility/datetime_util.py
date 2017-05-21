@@ -1,4 +1,6 @@
 from settings.antenna_settings import span_to_weekday
+import pytz
+from datetime import datetime
 
 
 def calc_date_from_span(item, prev=False):
@@ -6,8 +8,6 @@ def calc_date_from_span(item, prev=False):
     if span == '' or span == 'sometime' or span == 'complete':
         next_ = ''
     else:
-        import pytz
-        from datetime import datetime
         from datetime import timedelta
         now = datetime.now(pytz.timezone('Asia/Tokyo'))
         if span == 'daily' or span == 'once':
@@ -36,3 +36,7 @@ def calc_date_from_span(item, prev=False):
             next_ = ''
     item['next'] = next_
     return item
+
+
+def now_str(fmt):
+    return datetime.now(pytz.timezone('Asia/Tokyo')).strftime(fmt)

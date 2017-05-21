@@ -7,7 +7,7 @@ from evaluator import set_body, body, header, exists, isEqualTo
 from cachetools import LRUCache
 from settings.antenna_settings import span_option
 from utility.jinja2_util import create_util
-from utility.datetime_util import calc_date_from_span
+from utility.datetime_util import calc_date_from_span, now_str
 from datetime import datetime
 import pytz
 antenna_cache = LRUCache(maxsize=1000)
@@ -41,8 +41,11 @@ async def update_id(exchange):
     return exchange
 
 
-def get_now(exchange):
-    return datetime.now(pytz.timezone('Asia/Tokyo')).strftime("%Y/%m/%d %H:%M")
+def get_now(fmt):
+    def now_func(exchange):
+        return now_str(fmt)
+
+    return now_func
 
 
 def sort_func(exchange):
@@ -85,7 +88,7 @@ async def update_time(exchange):
                 'data':{
                     'items': body(),
                     'span_list': span_option,
-                    'now': get_now
+                    'now': get_now("%Y/%m/%d %H:%M")
                     },
                 'util': create_util()
             })))])
@@ -119,6 +122,7 @@ def item_update_by_exchange(item, exchange):
         exchange.set_header('time_no_update', False)
         item['span'] = 'complete'
         item['next'] = ''
+        item['end'] = get_now("%m/%d")(exchange)
     elif span_changed_flag:
         current = exchange.get_header('current', 'false')
         calc_date_from_span(item, current == 'true')
@@ -142,7 +146,7 @@ def item_update_by_exchange(item, exchange):
 (RouteId('antenna_create')
     .process(lambda ex:
         ex.set_body(
-            [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'memo': ex.get_header('memo', ''), 'span': ex.get_header('span', '')}, ex.get_header('url', '') == '')]
+            [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'memo': ex.get_header('memo', ''), 'span': ex.get_header('span', ''), 'start': get_now("%m/%d")(ex)}, ex.get_header('url', '') == '')]
             + ex.get_body()))
     .to(update_id)
 ) #yapf: disable
