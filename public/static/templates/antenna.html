@@ -206,6 +206,8 @@
                     if (window.confirm(exchange.getHeader('id') + '番を上書きしますか？')) {
                         exchange.setHeader('method', 'update');
                         return exchange;
+                    }else{
+                        buttonEnable(buttons)(exchange)
                     }
                 }
                 else {
