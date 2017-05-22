@@ -90,7 +90,7 @@ async def update_time(exchange):
                     'span_list': span_option,
                     'now': get_now("%Y/%m/%d %H:%M")
                     },
-                'util': create_util()
+                'util': create_util
             })))])
 ) #yapf: disable
 

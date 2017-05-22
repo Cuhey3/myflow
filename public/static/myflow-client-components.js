@@ -6,12 +6,28 @@ function to(routeId, exchange) {
 function formToExchange(formElement) {
     return function(exchange) {
         exchange = exchange || new Exchange();
-        var elements = formElement.querySelectorAll('[name]');
-        for (var i = 0; i < elements.length; i++) {
-            exchange.setHeader([elements[i].name], elements[i].value);
-        }
+        toArray(formElement.querySelectorAll('[name]'))
+            .forEach(function(element) {
+                exchange.setHeader([element.name], element.value);
+            });
         return exchange;
     };
+}
+
+function exchangeToForm(formElement) {
+    return function(exchange) {
+        toArray(formElement.querySelectorAll('[name]'))
+            .forEach(function(element) {
+                var value = exchange.getHeader(element.name);
+                if (element.tagName.toLowerCase() == 'select') {
+                    element.selectedIndex = value;
+                }
+                else {
+                    element.value = value;
+                }
+            });
+        return exchange;
+    }
 }
 
 function log(params) {
@@ -56,7 +72,7 @@ function buttonEnable(elements, bool) {
     }
     var disable = bool === false;
     return function(exchange) {
-        elements.forEach(function(element){
+        elements.forEach(function(element) {
             element.disabled = disable
         });
         return exchange;
@@ -66,5 +82,12 @@ function buttonEnable(elements, bool) {
 function pageReload() {
     return function(exchange) {
         document.location.reload();
+    }
+}
+
+function pageTop() {
+    return function(exchange) {
+        window.scrollTo(0, 0);
+        return exchange;
     }
 }

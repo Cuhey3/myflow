@@ -1,9 +1,8 @@
 function Exchange(body, header, element) {
-    this.internalObject = {}
-    this.internalObject['body'] = body || {};
+    this.internalObject = {};
+    this.internalObject['body'] = (body || body == '') ? body : {};
     this.internalObject['header'] = header || {};
     this.element = element;
-
     Exchange.prototype.getBody = function() {
         return this.internalObject['body'];
     };
@@ -13,7 +12,7 @@ function Exchange(body, header, element) {
     };
 
     Exchange.prototype.getHeader = function(key, value) {
-        return this.internalObject['header'][key] || value;
+        return (key in this.internalObject['header']) ? this.internalObject['header'][key] : value;
     };
 
     Exchange.prototype.setHeader = function(key, value) {

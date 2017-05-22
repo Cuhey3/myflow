@@ -1,51 +1,8 @@
+<!DOCTYPE html>
 <html>
 
 <head>
     <title>いろいろ巡回ツール</title>
-    <script>
-        function reload(id, current) {
-            var url = '/antenna?method=update&id=' + id;
-            if (current) {
-                url += '&current=true';
-            }
-            document.location.href = url;
-        }
-
-        function load(id) {
-            var now = "{{now}}";
-            var row = document.getElementById('tr-id-' + id);
-            if (row.children[4].children.length > 0) {
-                document.getElementsByName('name')[0].value = row.children[4].children[0].text;
-            }
-            else {
-                document.getElementsByName('name')[0].value = row.children[4].innerHTML;
-                if (row.children[5].children.length > 0) {
-                }
-            }
-            var link = row.querySelector('.external')
-            if(link){
-                document.getElementsByName('url')[0].value = link.href
-            }
-            document.getElementsByName('memo')[0].value = row.children[5].innerText
-            var next = row.children[3].innerHTML;
-            document.getElementsByName('current')[0].value = next <= now;
-            document.getElementsByName('id')[0].value = id;
-            var expression = row.children[1].innerHTML;
-            var options = document.getElementsByTagName('option');
-            for (var i = 0; i < options.length; i++) {
-                if (options[i].innerHTML == expression) {
-                    document.getElementsByName('span')[0].selectedIndex = i;
-                }
-            }
-            window.scrollTo(0, 0);
-        }
-
-        function finish(id) {
-            if (window.confirm('このタスクを完了しますか？')) {
-                document.location.href = '/antenna?method=update&id=' + id + '&finish=true';
-            }
-        }
-    </script>
     <style>
         table {
             margin: 10px;
@@ -62,7 +19,8 @@
         .future {
             background-color: #ccc;
         }
-        .external{
+        
+        .external {
             background-image: url('/public/static/external-link.svg');
             background-repeat: no-repeat;
             background-size: 16px;
@@ -126,79 +84,123 @@
         </thead>
         <tbody>
             {% for item in items %}
-            <tr id="tr-id-{{item.id}}" {% if util.is_future(item) or item.span=='complete' %} class="future" {% endif %}>
-                <td onclick="load({{item.id}})">{{item.id}}</td>
+            <tr{% if util.is_future(item) or item.span=='complete' %} class="future" {% endif %}>
+                <td>{{item.id}}</td>
                 <th>{{util.span_key_to_text(item.span)}}</th>
                 <td>{{item.past}}</td>
-                <td>{% if item.next %}{{item.next}}{% endif %}</td>
-                <td>{% if item.span == 'complete' %}{{item.name | escape}}{% else %}<a href="javascript:void(0)" onclick='setTimeout({% if item.span == "once" and util.is_current(item) %}finish("{{item.id}}"){% else %}reload("{{item.id | escape}}", {% if util.is_future(item) %}true{% else %}false{% endif %}){% endif %}, 10)'>{{item.name | escape}}</a>{% endif %}{% if item.url %}<a href="{{item.url}}" class="external" target="_blank"> 　</a>{% endif %}</td>
+                <td>{{item.next}}</td>
+                <td>{% if item.span == 'complete' %}<span>{{item.name | escape}}</span>{% else %}<a href="javascript:void(0)" />{{item.name | escape}}</a>{% endif %}{% if item.url %}
+                    <a href="{{item.url}}" class="external" target="_blank"> 　</a>{% endif %}</td>
                 <td>{{item.memo}}</td>
                 <td>
                     {% if util.is_future(item) or item.get('next', '') == '' or item.span == 'complete' %}
                     <input type="button" value="削除" disabled> {% else %}
                     <input type="button" value="保留" disabled> {% endif %}
                 </td>
-            </tr>
-            {% endfor %}
+                </tr>
+                {% endfor %}
         </tbody>
     </table>
+    <script src='/public/static/myflow-client-util.js'></script>
     <script src='/public/static/myflow-client-core.js'></script>
     <script src='/public/static/myflow-client-consumer.js'></script>
     <script src='/public/static/myflow-client-components.js'></script>
-    <script src='/public/static/myflow-client-util.js'></script>
     <script>
-        var links = document.querySelectorAll('a[href="javascript:void(0)"]');
-        var idTdElements = []
-        document.querySelectorAll('#mainTable tbody tr').forEach(function(element){
-            idTdElements.push(element.querySelector('td'))
-        })
-        var buttons = document.querySelectorAll('input[type=button]');
-        
+        console.log("{{now}}")
+        var buttons = selectAll('input[type=button]');
+        var options = new Options();
+        var mapperCreator = new MapperCreator(function(element) {
+            var thtdElements = element.querySelectorAll('th, td');
+            return {
+                'id': function() {
+                    return thtdElements[0].innerText;
+                },
+                'name': function() {
+                    return thtdElements[4].children[0].innerText;
+                },
+                'url': function() {
+                    return getOr(element.querySelector('.external'), 'href', '');
+                },
+                'memo': function() {
+                    return thtdElements[5].innerText;
+                },
+                'span': function() {
+                    return options.getIndexByText(thtdElements[1].innerHTML);
+                },
+                'current': function() {
+                    return thtdElements[3].text <= "{{now}}";
+                },
+                'future': function() {
+                    return thtdElements[3].innerText > "{{now}}";
+                },
+                'finish': function() {
+                    return thtdElements[1].innerText === '一度' && thtdElements[3].innerText <= "{{now}}";
+                },
+            }
+        }, 'tr');
+
         new Event('onload', window)
             .to(buttonEnable(buttons))
             .to(log({
                 'name': 'ロード完了'
             }));
-/*
-        new Event('onclick', links)
-            .to(log({'name': 'links'}));
-            
-        new Event('onclick', idTdElements)
-            .to(log({'name': 'idtd'}))
-            .to(function(exchange){
-                var now = "{{now}}";
-                var id = exchange.getElement().innerText;
-                var row = exchange.getElement().parentNode;
-                // TBD
-            });
-        */
-        new Event('onclick', document.querySelectorAll('input[value="保留"]'))
-            .to(buttonEnable(buttons, false))
-            .to(function(exchange){
-                var id = exchange.getElement().parentNode.parentNode.querySelector('td').innerText;
-                exchange.setHeader('id', id);
-                exchange.setHeader('method', 'update');
-                exchange.setHeader('reserve', 'true');
-                return exchange
-            })
-            .to(request('/antenna-exchange'));
 
-        new Event('onclick', document.querySelectorAll('input[value="削除"]'))
-            .to(buttonEnable(buttons, false))
-            .to(function(exchange){
-                var id = exchange.getElement().parentNode.parentNode.querySelector('td').innerText;
-                exchange.setHeader('id', id);
-                return exchange;
-            })
-            .to(function(exchange){
-                if(window.confirm(exchange.getHeader('id') + '番を削除します。')){
-                    exchange.setHeader('method', 'delete');
+        new Event('onclick', selectAll('a[href="javascript:void(0)"]'))
+            .to(function(exchange) {
+                var mapper = mapperCreator.create(exchange);
+                mapper.updateExchange(exchange, 'id');
+                exchange.setHeader('method', 'update');
+                if (mapper.get('finish')) {
+                    if (window.confirm('このタスクを完了しますか？')) {
+                        exchange.setHeader('finish', 'true');
+                        return exchange;
+                    }
+                }
+                else {
+                    if (mapper.get('future')) {
+                        exchange.setHeader('current', 'true');
+                    }
                     return exchange;
                 }
             })
             .to(request('/antenna-exchange'));
-            
-        new Event('onclick', [document.querySelector('input[value="上書き"]'),document.querySelector('input[value="作成"]')])
+
+        new Event('onclick', collectNthChild(selectAll('#mainTable tbody tr'), 'td', 0))
+            .to(function(exchange) {
+                var mapper = mapperCreator.create(exchange);
+                return mapper.updateExchange(exchange, ['name', 'url', 'memo', 'current', 'id', 'span']);
+            })
+            .to(exchangeToForm(byid('createForm')))
+            .to(pageTop());
+
+        new Event('onclick', selectAll('input[value="保留"], input[value="削除"]'))
+            .to(buttonEnable(buttons, false))
+            .to(function(exchange) {
+                var method = exchange.getElement().value === '保留' ? 'update' : 'delete';
+                var mapper = mapperCreator.create(exchange);
+                mapper.updateExchange(exchange, 'id')
+                exchange.setHeader('method', method);
+                if (method === 'update') {
+                    exchange.setHeader('reserve', 'true');
+                }
+                return exchange;
+            })
+            .to(function(exchange) {
+                if (exchange.getHeader('method') === 'delete') {
+                    if (window.confirm(exchange.getHeader('id') + '番を削除します。')) {
+                        return exchange;
+                    }
+                    else {
+                        buttonEnable(buttons)(exchange)
+                    }
+                }
+                else {
+                    return exchange;
+                }
+            })
+            .to(request('/antenna-exchange'));
+
+        new Event('onclick', selectAll('input[value="上書き"], input[value="作成"]'))
             .to(buttonEnable(buttons, false))
             .to(formToExchange(byid('createForm')))
             .to(function(exchange) {
@@ -206,7 +208,8 @@
                     if (window.confirm(exchange.getHeader('id') + '番を上書きしますか？')) {
                         exchange.setHeader('method', 'update');
                         return exchange;
-                    }else{
+                    }
+                    else {
                         buttonEnable(buttons)(exchange)
                     }
                 }
@@ -226,19 +229,9 @@
                     return exchange;
                 }
             })
-            .to(log({
-                'name': 'これから送る',
-                'header': true
-            }))
             .to(request('/antenna-exchange'));
 
-        new Reply('/antenna-exchange')
-            .to(log({
-                'name': '送られてきた',
-                'body': true,
-                'header': true
-            }))
-            .to(pageReload());
+        new Reply('/antenna-exchange').to(pageReload());
     </script>
 </body>
 
