@@ -49,18 +49,33 @@ Producer.prototype.to = function(processor) {
     return this.next_producer;
 };
 
+Producer.prototype.task = function(processor) {
+    this.next_producer = new Producer(processor, this.consumer);
+    this.next_producer.isCallbackProcessor = true;
+    return this.next_producer;
+}
 Producer.prototype.getConsumer = function() {
     return this.consumer;
 };
 
 Producer.prototype.produce = function(exchange) {
-    if (this.processor) {
-        exchange = this.processor(exchange);
-    }
-    if (exchange) {
-        if (this.next_producer) {
-            exchange = this.next_producer.produce(exchange);
+    if (this.isCallbackProcessor) {
+        if (this.processor) {
+            var next_producer = this.next_producer || new Producer(function() {}, this.consumer);
+            this.processor(exchange, function() {
+                next_producer.produce(exchange);
+            });
         }
     }
-    return exchange;
+    else {
+        if (this.processor) {
+            exchange = this.processor(exchange);
+        }
+        if (exchange) {
+            if (this.next_producer) {
+                exchange = this.next_producer.produce(exchange);
+            }
+        }
+        return exchange;
+    }
 };

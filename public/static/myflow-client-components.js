@@ -1,6 +1,9 @@
-function to(routeId, exchange) {
-    exchange = exchange || new Exchange();
-    exchange = new Endpoints().sendTo(routeId, exchange);
+function direct(routeId) {
+    return function(exchange) {
+        exchange = exchange || new Exchange();
+        exchange = new Endpoints().sendTo(routeId, exchange);
+        return exchange;
+    }
 }
 
 function formToExchange(formElement) {
@@ -50,7 +53,7 @@ function log(params) {
 }
 
 function request(uri) {
-    return function(exchange) {
+    return function(exchange, func) {
         var xhr = new XMLHttpRequest();
         var url = uri;
         xhr.open("POST", url, true);
@@ -58,10 +61,9 @@ function request(uri) {
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4 && xhr.status === 200) {
                 exchange.update(JSON.parse(xhr.responseText));
-                new RequestReply().sendTo(uri, exchange);
+                func()
             }
         };
-        console.log(exchange.toJson())
         xhr.send(exchange.toJson());
     }
 }
@@ -89,5 +91,21 @@ function pageTop() {
     return function(exchange) {
         window.scrollTo(0, 0);
         return exchange;
+    }
+}
+
+Number.isInteger = Number.isInteger || function(value) {
+    return typeof value === "number" &&
+        isFinite(value) &&
+        Math.floor(value) === value;
+};
+
+function delay(t) {
+    if (Number.isInteger(t)) {
+        t = 0;
+    }
+    t *= 1000
+    return function(exchange, func) {
+        window.setTimeout(func, t);
     }
 }

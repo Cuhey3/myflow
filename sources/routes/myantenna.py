@@ -157,6 +157,7 @@ def item_update_by_exchange(item, exchange):
     .to(direct('antenna_crud'))
     .process(lambda ex: ex.set_body('success'))
 ) #yapf: disable
+
 try:
     Aiohttp().application().router.add_static(
         prefix='/public/static', path='public/static')

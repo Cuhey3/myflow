@@ -106,7 +106,6 @@
     <script src='/public/static/myflow-client-consumer.js'></script>
     <script src='/public/static/myflow-client-components.js'></script>
     <script>
-        console.log("{{now}}")
         var buttons = selectAll('input[type=button]');
         var options = new Options();
         var mapperCreator = new MapperCreator(function(element) {
@@ -136,6 +135,9 @@
                 'finish': function() {
                     return thtdElements[1].innerText === '一度' && thtdElements[3].innerText <= "{{now}}";
                 },
+                'completed': function() {
+                    return thtdElements[1].innerText === '完了';
+                },
             }
         }, 'tr');
 
@@ -163,7 +165,19 @@
                     return exchange;
                 }
             })
-            .to(request('/antenna-exchange'));
+            .to(direct('antenna-crud'))
+
+        new Event('onclick', selectAll('.future a.external'))
+            .to(function(exchange) {
+                var mapper = mapperCreator.create(exchange);
+                if (!mapper.get('completed')) {
+                    mapper.updateExchange(exchange, 'id');
+                    exchange.setHeader('current', 'true');
+                    exchange.setHeader('method', 'update');
+                    return exchange;
+                }
+            })
+            .to(direct('antenna-crud'));
 
         new Event('onclick', collectNthChild(selectAll('#mainTable tbody tr'), 'td', 0))
             .to(function(exchange) {
@@ -198,7 +212,7 @@
                     return exchange;
                 }
             })
-            .to(request('/antenna-exchange'));
+            .to(direct('antenna-crud'))
 
         new Event('onclick', selectAll('input[value="上書き"], input[value="作成"]'))
             .to(buttonEnable(buttons, false))
@@ -229,9 +243,11 @@
                     return exchange;
                 }
             })
-            .to(request('/antenna-exchange'));
+            .to(direct('antenna-crud'))
 
-        new Reply('/antenna-exchange').to(pageReload());
+        new RouteId('antenna-crud')
+            .task(request('/antenna-exchange'))
+            .to(pageReload());
     </script>
 </body>
 

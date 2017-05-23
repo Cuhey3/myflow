@@ -96,10 +96,10 @@ function Event(eventName, elements, groupName) {
     if (!elements.forEach) {
         elements = [elements];
     }
-    var func = function() {
-                consumer.consume(new Exchange({}, {}, this));
+    var func = function(event) {
+        consumer.consume(new Exchange({}, {}, event.target));
     };
-    elements.forEach(function(element){
+    elements.forEach(function(element) {
         element[eventName] = func;
     });
     if (groupName) {
