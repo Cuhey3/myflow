@@ -10,7 +10,7 @@ def calc_date_from_span(item, prev=False):
     else:
         from datetime import timedelta
         now = datetime.now(pytz.timezone('Asia/Tokyo'))
-        if span == 'daily' or span == 'once':
+        if span == 'daily' or span == 'once' or span == 'priority':
             deltadays = 0 if prev else 1
             next_ = (now + timedelta(days=deltadays)).strftime("%Y/%m/%d")
         elif span.startswith('every_'):

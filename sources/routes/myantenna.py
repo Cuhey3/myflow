@@ -67,9 +67,10 @@ def sort_func(exchange):
 
 
 async def update_time(exchange):
-    if exchange.get_header('reserve', '') != 'true' and exchange.get_header(
-            'current', '') != 'true' and not exchange.get_header(
-                'time_no_update', False):
+    if exchange.get_header('reserve', '') != 'true' and (
+            exchange.get_header('current', '') != 'true' or
+            exchange.get_header('span') == 'complete'
+    ) and not exchange.get_header('time_no_update', False):
         id_ = exchange.get_header('id')
         for item in exchange.get_body():
             if str(item['id']) == id_:
@@ -146,7 +147,7 @@ def item_update_by_exchange(item, exchange):
 (RouteId('antenna_create')
     .process(lambda ex:
         ex.set_body(
-            [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'memo': ex.get_header('memo', ''), 'span': ex.get_header('span', ''), 'start': get_now("%m/%d")(ex)}, ex.get_header('url', '') == '')]
+            [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'memo': ex.get_header('memo', ''), 'span': ex.get_header('span', ''), 'start': get_now("%m/%d")(ex)},True)]
             + ex.get_body()))
     .to(update_id)
 ) #yapf: disable

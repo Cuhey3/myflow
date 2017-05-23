@@ -1,6 +1,7 @@
 #yapf: disable
 span_option = [
     {'key': 'sometime', 'text': ''},
+    {'key': 'priority', 'text': '優先'},
     {'key': 'once', 'text': '一度'},
     {'key': 'daily', 'text': '毎日'},
     {'key': 'w_mon', 'text': '月曜'},

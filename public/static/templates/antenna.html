@@ -3,31 +3,7 @@
 
 <head>
     <title>いろいろ巡回ツール</title>
-    <style>
-        table {
-            margin: 10px;
-        }
-        
-        table,
-        th,
-        td {
-            padding: 4px;
-            border: 1px solid #666;
-            border-collapse: collapse;
-        }
-        
-        .future {
-            background-color: #ccc;
-        }
-        
-        .external {
-            background-image: url('/public/static/external-link.svg');
-            background-repeat: no-repeat;
-            background-size: 16px;
-            background-position: center;
-            text-decoration: none;
-        }
-    </style>
+    <link rel="stylesheet" type="text/css" href="/public/static/style.css">
 </head>
 
 <body>
@@ -73,13 +49,13 @@
     <table id="mainTable">
         <thead>
             <tr>
-                <th>id</th>
-                <th>周期</th>
-                <th>前回</th>
-                <th>次回</th>
-                <th>タイトル</th>
-                <th>メモ</th>
-                <th>操作</th>
+                <th class="id-th">id</th>
+                <th class="span-th">周期</th>
+                <th class="past-th">前回</th>
+                <th class="next-th">次回</th>
+                <th class="title-th">タイトル</th>
+                <th class="memo-th">メモ</th>
+                <th class="action-th">操作</th>
             </tr>
         </thead>
         <tbody>
@@ -127,13 +103,13 @@
                     return options.getIndexByText(thtdElements[1].innerHTML);
                 },
                 'current': function() {
-                    return thtdElements[3].text <= "{{now}}";
+                    return thtdElements[3].innerText <= "{{now}}";
                 },
                 'future': function() {
                     return thtdElements[3].innerText > "{{now}}";
                 },
                 'finish': function() {
-                    return thtdElements[1].innerText === '一度' && thtdElements[3].innerText <= "{{now}}";
+                    return (thtdElements[1].innerText === '一度' || thtdElements[1].innerText === '優先') && thtdElements[3].innerText <= "{{now}}";
                 },
                 'completed': function() {
                     return thtdElements[1].innerText === '完了';

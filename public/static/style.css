@@ -1,0 +1,56 @@
+table {
+    margin: 10px;
+}
+
+table,
+th,
+td {
+    padding: 4px;
+    border: 1px solid #666;
+    border-collapse: collapse;
+}
+
+.future {
+    background-color: #ccc;
+}
+
+.external {
+    background-image: url('/public/static/external-link.svg');
+    background-repeat: no-repeat;
+    background-size: 16px;
+    background-position: center;
+    text-decoration: none;
+}
+
+#mainTable {
+    width: 950px;
+    table-layout: fixed;
+}
+
+.id-th {
+    width: 20px;
+}
+
+.span-th {
+    width: 25px;
+}
+
+.past-th {
+    width: 80px;
+}
+
+.next-th {
+    width: 55px;
+}
+
+.title-th {
+    width: 150px;
+}
+
+.memo-th {
+    width: 200px;
+}
+
+.action-th {
+    width: 25px;
+}
