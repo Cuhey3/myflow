@@ -32,7 +32,7 @@ td {
 }
 
 .span-th {
-    width: 25px;
+    width: 20px;
 }
 
 .past-th {
@@ -40,17 +40,21 @@ td {
 }
 
 .next-th {
-    width: 55px;
+    width: 50px;
+}
+
+.cnt-th {
+    width: 20px;
 }
 
 .title-th {
-    width: 150px;
+    width: 130px;
 }
 
 .memo-th {
-    width: 200px;
+    width: 190px;
 }
 
 .action-th {
-    width: 25px;
+    width: 23px;
 }

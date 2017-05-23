@@ -108,6 +108,7 @@ async def update_time(exchange):
 
 def item_update_by_exchange(item, exchange):
     headers = exchange.get_headers()
+    update_success_count(item, headers)
     span_changed_flag = True
     if 'span' in headers and 'name' in headers and 'url' in headers and 'memo' in headers:
         exchange_span = exchange.get_header('span')
@@ -128,6 +129,21 @@ def item_update_by_exchange(item, exchange):
         current = exchange.get_header('current', 'false')
         calc_date_from_span(item, current == 'true')
     return item
+
+
+def update_success_count(item, headers):
+    if len(headers
+           ) <= 3 and 'current' not in headers and 'finish' not in headers:
+        now = now_str("%Y/%m/%d")
+        if headers.get('reserve', '') != 'true' and now == item.get(
+                'next', ''):  # 成功維持条件
+            if now != item.get('prev_sc', ''):  # カウントアップ条件
+                cnt_sc = item.get('cnt_sc', 0)
+                item['cnt_sc'] = cnt_sc + 1
+                item['prev_sc'] = now
+        else:  # 失敗処理
+            item['cnt_sc'] = 0
+            item['prev_sc'] = now
 
 (RouteId('antenna_update')
     .process(lambda ex:

@@ -53,6 +53,7 @@
                 <th class="span-th">周期</th>
                 <th class="past-th">前回</th>
                 <th class="next-th">次回</th>
+                <th class="cnt-th">継続</th>
                 <th class="title-th">タイトル</th>
                 <th class="memo-th">メモ</th>
                 <th class="action-th">操作</th>
@@ -65,6 +66,7 @@
                 <th>{{util.span_key_to_text(item.span)}}</th>
                 <td>{{item.past}}</td>
                 <td>{{item.next}}</td>
+                <td>{{item.cnt_sc}}</td>
                 <td>{% if item.span == 'complete' %}<span>{{item.name | escape}}</span>{% else %}<a href="javascript:void(0)" />{{item.name | escape}}</a>{% endif %}{% if item.url %}
                     <a href="{{item.url}}" class="external" target="_blank"> 　</a>{% endif %}</td>
                 <td>{{item.memo}}</td>
