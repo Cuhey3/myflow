@@ -39,6 +39,7 @@
                 <td colspan="2">
                     <input type="button" value="作成" id='createButton' disabled>
                     <input type="button" value="上書き" id='updateButton' disabled>
+                    <input type="button" value="クリア" id='clearButton' disabled>
                     <input type="hidden" name="id">
                     <input type="hidden" name="current">
                 </td>
@@ -51,9 +52,9 @@
             <tr>
                 <th class="id-th">id</th>
                 <th class="span-th">周期</th>
+                <th class="cnt-th">継続</th>
                 <th class="past-th">前回</th>
                 <th class="next-th">次回</th>
-                <th class="cnt-th">継続</th>
                 <th class="title-th">タイトル</th>
                 <th class="memo-th">メモ</th>
                 <th class="action-th">操作</th>
@@ -64,9 +65,9 @@
             <tr{% if util.is_future(item) or item.span=='complete' %} class="future" {% endif %}>
                 <td>{{item.id}}</td>
                 <th>{{util.span_key_to_text(item.span)}}</th>
+                <td>{{item.cnt_sc}}</td>
                 <td>{{item.past}}</td>
                 <td>{{item.next}}</td>
-                <td>{{item.cnt_sc}}</td>
                 <td>{% if item.span == 'complete' %}<span>{{item.name | escape}}</span>{% else %}<a href="javascript:void(0)" />{{item.name | escape}}</a>{% endif %}{% if item.url %}
                     <a href="{{item.url}}" class="external" target="_blank"> 　</a>{% endif %}</td>
                 <td>{{item.memo}}</td>
@@ -105,13 +106,13 @@
                     return options.getIndexByText(thtdElements[1].innerHTML);
                 },
                 'current': function() {
-                    return thtdElements[3].innerText <= "{{now}}";
+                    return thtdElements[4].innerText <= "{{now}}";
                 },
                 'future': function() {
-                    return thtdElements[3].innerText > "{{now}}";
+                    return thtdElements[4].innerText > "{{now}}";
                 },
                 'finish': function() {
-                    return (thtdElements[1].innerText === '一度' || thtdElements[1].innerText === '優先') && thtdElements[3].innerText <= "{{now}}";
+                    return (thtdElements[1].innerText === '一度' || thtdElements[1].innerText === '優先') && thtdElements[4].innerText <= "{{now}}";
                 },
                 'completed': function() {
                     return thtdElements[1].innerText === '完了';
@@ -164,6 +165,9 @@
             })
             .to(exchangeToForm(byid('createForm')))
             .to(pageTop());
+
+        new Event('onclick', selectAll('input[value="クリア"]'))
+            .to(exchangeToForm(byid('createForm')))
 
         new Event('onclick', selectAll('input[value="保留"], input[value="削除"]'))
             .to(buttonEnable(buttons, false))

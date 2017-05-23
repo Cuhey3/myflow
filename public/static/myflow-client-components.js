@@ -21,9 +21,9 @@ function exchangeToForm(formElement) {
     return function(exchange) {
         toArray(formElement.querySelectorAll('[name]'))
             .forEach(function(element) {
-                var value = exchange.getHeader(element.name);
+                var value = exchange.getHeader(element.name, '');
                 if (element.tagName.toLowerCase() == 'select') {
-                    element.selectedIndex = value;
+                    element.selectedIndex = value || 0;
                 }
                 else {
                     element.value = value;
