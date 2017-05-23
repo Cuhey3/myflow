@@ -135,7 +135,7 @@ def update_success_count(item, headers):
     if len(
             headers
     ) <= 3 and 'current' not in headers and 'finish' not in headers and item.get(
-            'span') not in ['once', 'primary']:
+            'span') not in ['once', 'primary', 'sometime']:
         now = now_str("%Y/%m/%d")
         if headers.get('reserve', '') != 'true' and now == item.get(
                 'next', ''):  # 成功維持条件
