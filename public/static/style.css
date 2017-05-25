@@ -51,7 +51,7 @@ a {
 }
 
 .next-th {
-    width: 40px;
+    width: 50px;
 }
 
 .title-th {
@@ -67,19 +67,19 @@ a {
 }
 
 #modal-content table th {
-    width: 100px;
+    width: 80px;
 }
 
 #modal-content table td {
-    width: 400px;
+    width: 300px;
 }
 
 #modal-content input[type=text] {
-    width: 100%;
+    width: 97%;
 }
 
 #modal-content textarea {
-    width: 100%;
+    width: 97%;
 }
 
 #modal {
@@ -102,9 +102,12 @@ a {
     width: 100%;
     height: 100%;
     z-index: 1000;
+    padding-left: 10%;
+    padding-top: 10%;
 }
 
 #modal-content {
+    width: 50%;
     margin: 20px;
     padding: 10px;
     background-color: white;
