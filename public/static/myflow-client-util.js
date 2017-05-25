@@ -1,3 +1,16 @@
+if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function(searchString, position) {
+        position = position || 0;
+        return this.substr(position, searchString.length) === searchString;
+    };
+}
+
+Number.isInteger = Number.isInteger || function(value) {
+    return typeof value === "number" &&
+        isFinite(value) &&
+        Math.floor(value) === value;
+};
+
 function byid(id) {
     return document.getElementById(id);
 }
@@ -20,8 +33,8 @@ function getOr(object, attr, value) {
     }
 }
 
-function Options(selector) {
-    this.options = toArray(document.querySelectorAll((selector || 'option')));
+function Options(element) {
+    this.options = toArray((element || document).querySelectorAll('option'));
     Options.prototype.getIndexByText = function(text) {
         var result = -1
         this.options.forEach(function(option, index) {
@@ -61,29 +74,59 @@ function collectNthChild(elements, selector, nth) {
     return result;
 }
 
-function Mapper(mapperObject) {
-    this.mapperObject = mapperObject;
-    Mapper.prototype.get = function(key) {
-        return this.mapperObject[key]();
+function CookieObject() {
+    if (!CookieObject.obj) {
+        console.log('cookie object initialized.')
+        if (document.cookie && document.cookie.startsWith('%7B')) {
+            CookieObject.obj = JSON.parse(decodeURI(document.cookie.split(' ')[0]));
+        }
+        else {
+            CookieObject.obj = {};
+        }
     }
+    CookieObject.prototype.set = function(key, value) {
+        CookieObject.obj[key] = value;
+        console.log('cookie set', CookieObject.obj)
+        document.cookie = encodeURI(JSON.stringify(CookieObject.obj)) + ' ;max-age=31536000';
+        console.log(encodeURI(JSON.stringify(CookieObject.obj)))
+    }
+    CookieObject.prototype.get = function(key, defaultValue) {
+        if (key in CookieObject.obj) {
+            console.log('get from cookie', CookieObject.obj)
+            return CookieObject.obj[key];
+        }
+        else {
+            if (defaultValue) {
+                this.set(key, defaultValue);
+            }
+            return defaultValue;
+        }
+    }
+}
+
+function ElementReader(readerCreator) {
     var self = this;
-    Mapper.prototype.updateExchange = function(exchange, keys) {
-        if (!Array.isArray(keys)) {
+    self.readerCreator = readerCreator;
+    self.functionObject = {};
+
+    ElementReader.prototype.create = function(exchange) {
+        var reader = new ElementReader(self.readerCreator); //違和感
+        reader.functionObject = self.readerCreator(exchange);
+        reader.exchange = exchange;
+        return reader;
+    };
+    ElementReader.prototype.read = function(key) {
+        return self.functionObject[key]();
+    };
+    ElementReader.prototype.updateExchange = function(keys) {
+        if (!keys) {
+            keys = Object.keys(self.functionObject);
+        }
+        else if (!Array.isArray(keys)) {
             keys = [keys];
         }
         keys.forEach(function(key) {
-            exchange.setHeader(key, self.get(key));
+            self.exchange.setHeader(key, self.read(key));
         });
-        return exchange;
     };
-}
-
-function MapperCreator(mappingFunc, tagName) {
-    MapperCreator.prototype.create = function(exchange) {
-        var element = exchange.getElement();
-        while (element.tagName.toLowerCase() !== tagName) {
-            element = element.parentNode;
-        }
-        return new Mapper(mappingFunc(element));
-    }
 }

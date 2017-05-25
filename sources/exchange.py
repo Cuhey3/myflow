@@ -18,6 +18,9 @@ class Exchange:
     def set_header(self, key, value):
         self.header[key] = value
 
+    def set_headers(self, dic):
+        self.header.update(dic)
+
     def get_headers(self):
         return self.header
 

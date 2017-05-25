@@ -1,30 +1,37 @@
 function Exchange(body, header, element) {
-    this.internalObject = {};
-    this.internalObject['body'] = (body || body == '') ? body : {};
-    this.internalObject['header'] = header || {};
-    this.element = element;
+    var self = this;
+    self.internalObject = {};
+    self.internalObject['body'] = (body || body == '') ? body : {};
+    self.internalObject['header'] = header || {};
+    self.element = element;
     Exchange.prototype.getBody = function() {
-        return this.internalObject['body'];
+        return self.internalObject['body'];
     };
 
     Exchange.prototype.setBody = function(body) {
-        this.internalObject['body'] = body;
+        self.internalObject['body'] = body;
     };
 
     Exchange.prototype.getHeader = function(key, value) {
-        return (key in this.internalObject['header']) ? this.internalObject['header'][key] : value;
+        return (key in self.internalObject['header']) ? self.internalObject['header'][key] : value;
     };
 
     Exchange.prototype.setHeader = function(key, value) {
-        this.internalObject['header'][key] = value;
+        self.internalObject['header'][key] = value;
     };
 
+    Exchange.prototype.setHeaders = function(obj) {
+        Object.keys(obj).forEach(function(key) {
+            self.internalObject['header'][key] = obj[key];
+        });
+    }
+
     Exchange.prototype.getHeaders = function() {
-        return this.internalObject['header'];
+        return self.internalObject['header'];
     };
 
     Exchange.prototype.getElement = function(element) {
-        return this.element;
+        return self.element;
     };
 
     Exchange.prototype.setElement = function(element) {

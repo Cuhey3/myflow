@@ -120,11 +120,14 @@ def item_update_by_exchange(item, exchange):
         item['name'] = exchange.get_header('name')
         item['url'] = exchange.get_header('url')
         item['memo'] = exchange.get_header('memo')
-    if exchange.get_header('finish', 'false') == 'true':
+        item['decide'] = exchange.get_header('decide')
+    if exchange.get_header('finish',
+                           'false') == 'true' or item['span'] == 'complete':
         exchange.set_header('time_no_update', False)
         item['span'] = 'complete'
         item['next'] = ''
-        item['end'] = get_now("%m/%d")(exchange)
+        if 'end' not in item:
+            item['end'] = get_now("%m/%d")(exchange)
     elif span_changed_flag:
         current = exchange.get_header('current', 'false')
         calc_date_from_span(item, current == 'true')
@@ -165,7 +168,7 @@ def update_success_count(item, headers):
 (RouteId('antenna_create')
     .process(lambda ex:
         ex.set_body(
-            [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'memo': ex.get_header('memo', ''), 'span': ex.get_header('span', ''), 'start': get_now("%m/%d")(ex)},True)]
+            [calc_date_from_span({'name': ex.get_header('name'), 'url': ex.get_header('url', ''), 'memo': ex.get_header('memo', ''), 'decide': ex.get_header('decide', ''), 'span': ex.get_header('span', ''), 'start': get_now("%m/%d")(ex)},True)]
             + ex.get_body()))
     .to(update_id)
 ) #yapf: disable
@@ -176,6 +179,18 @@ def update_success_count(item, headers):
     .to(direct('antenna_crud'))
     .process(lambda ex: ex.set_body('success'))
 ) #yapf: disable
+
+def detail(exchange):
+    id_ = exchange.get_header('id')
+    filtered = [item for item in exchange.get_body() if str(item['id']) == id_]
+    if len(filtered) > 0:
+        exchange.set_headers(filtered[0])
+
+
+(Client('/antenna-item')
+    .to(cache_get_processor)
+    .process(detail)
+    .process(lambda ex: ex.set_body('success'))) #yapf: disable
 
 try:
     Aiohttp().application().router.add_static(
