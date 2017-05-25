@@ -163,8 +163,10 @@ function modal(modalElement, action) {
                         exchange.setHeader(key, element.textContent);
                     }
                 });
-            modalElement.style.visibility = 'hidden';
-            return exchange;
+            if (modalElement.style.visibility == 'visible') { // 操作でキャンセルされてたら続きをやらない
+                modalElement.style.visibility = 'hidden';
+                return exchange;
+            }
         }
     }
 }

@@ -193,6 +193,14 @@
                 'name': 'ロード完了'
             }));
 
+        new Event('onkeydown', window, ['keyCode'])
+            .to(function(exchange) {
+                if (exchange.getHeader('keyCode') == 27) {
+                    byid('loading-modal').style.visibility = 'hidden';
+                    byid('modal').style.visibility = 'hidden';
+                }
+            })
+
         new Event('onclick', selectAll('a[href="javascript:void(0)"]:not([id])'))
             .to(function(exchange) {
                 var reader = trReader.create(exchange);

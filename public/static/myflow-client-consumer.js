@@ -90,15 +90,27 @@ Reply.prototype = Object.create(Consumer.prototype, {
     }
 });
 
-function Event(eventName, elements, groupName) {
+function Event(eventName, elements, attributes, groupName) {
     Consumer.call(this, null, this);
     var consumer = this;
     if (!elements.forEach) {
         elements = [elements];
     }
-    var func = function(event) {
-        consumer.consume(new Exchange({}, {}, event.target));
-    };
+    var func;
+    if (attributes && attributes.length > 0) {
+        func = function(event) {
+            var header = {};
+            attributes.forEach(function(key) {
+                header[key] = event[key];
+            });
+            consumer.consume(new Exchange({}, header, event.target));
+        };
+    }
+    else {
+        func = function(event) {
+            consumer.consume(new Exchange({}, {}, event.target));
+        };
+    }
     elements.forEach(function(element) {
         element[eventName] = func;
     });
