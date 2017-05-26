@@ -1,5 +1,6 @@
 from endpoints import Endpoints
 from evaluator import evaluate_expression, body, header
+import json
 
 
 def direct(params):
@@ -70,7 +71,6 @@ def redis_cache(params):
     conn = None
     assert isinstance(keys_expression, list), 'keys parameter must be list.'
     import aioredis
-    import json
     if method == 'set':
 
         async def processor(exchange):
@@ -227,6 +227,9 @@ def jinja2_(params):
         data = evaluate_expression(data_expression, exchange)
         if 'util' in params:
             data.update({'util': params.get('util')()})
+        if 'env' in params:
+            data['env'] = json.dumps(
+                evaluate_expression(params.get('env'), exchange))
         exchange.set_body(template.render(data))
         exchange.set_header('content-type', 'text/html')
         return exchange

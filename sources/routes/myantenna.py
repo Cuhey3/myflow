@@ -77,9 +77,11 @@ async def update_time(exchange):
                 'template': 'antenna.html',
                 'data':{
                     'items': body(),
-                    'span_list': span_option,
-                    'now': get_now("%Y/%m/%d %H:%M")
+                    'span_list': span_option
                     },
+                'env': {
+                    'now':get_now("%Y/%m/%d %H:%M")
+                },
                 'util': create_util
             })))])
 ) #yapf: disable
