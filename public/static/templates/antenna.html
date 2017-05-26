@@ -184,6 +184,14 @@
                 },
             }
         });
+        selectAll('#mainTable tbody tr').forEach(function(element) {
+            element.draggable = "true";
+            element.ondragstart = function(event) {
+                exchange = new Exchange({}, {}, element);
+                trReader.create(exchange).updateExchange()
+                event.dataTransfer.setData('application/json', exchange.toJson());
+            }
+        });
         var buttons = selectAll('input[type=button]');
         var options = new Options(byid('modal'));
 

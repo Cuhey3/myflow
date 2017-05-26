@@ -21,7 +21,9 @@ class Exchange:
     def set_headers(self, dic):
         self.header.update(dic)
 
-    def get_headers(self):
+    def get_headers(self, keys=None, default_value=''):
+        if keys and isinstance(keys, list):
+            return {key: self.get_header(key, default_value) for key in keys}
         return self.header
 
     def create_child(self, exchange=None):

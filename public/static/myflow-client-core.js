@@ -44,6 +44,10 @@ function Exchange(body, header, element) {
     Exchange.prototype.toJson = function() {
         return JSON.stringify(this.internalObject);
     };
+    Exchange.fromJson = function(jsonText, element) {
+        obj = JSON.parse(jsonText);
+        return new Exchange(obj['body'], obj['header'], element);
+    }
 }
 
 function Producer(processor, consumer) {

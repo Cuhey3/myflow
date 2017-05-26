@@ -190,3 +190,14 @@ function loadElement(element, headers) {
         return exchange;
     }
 }
+
+function dataTransfer() {
+    return function(exchange) {
+        element = exchange.getElement();
+        while (!element.ondrop) {
+            element = element.parentNode;
+        }
+        exchange = Exchange.fromJson(exchange.getHeader('dataTransfer').getData('application/json'), element);
+        return exchange;
+    };
+}

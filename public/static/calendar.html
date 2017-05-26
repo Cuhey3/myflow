@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>いろいろ巡回ツールスケジュール</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="/public/static/style.css">
+</head>
+
+<body>
+    <h2>いろいろ巡回ツールスケジュール</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>時間</th>
+                <th>タイトル</th>
+                <th>メモ</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>0700</td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>0800</td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>0900</td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>1000</td>
+                <td></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+    <script src='/public/static/myflow-client-util.js'></script>
+    <script src='/public/static/myflow-client-core.js'></script>
+    <script src='/public/static/myflow-client-consumer.js'></script>
+    <script src='/public/static/myflow-client-components.js'></script>
+    <script>
+        var targetElements = toArray(document.querySelectorAll('table tbody tr'))
+        targetElements.forEach(function(element) {
+            element.ondragover = function(event) {
+                event.preventDefault();
+            }
+        })
+        new Event('ondrop', targetElements, ['dataTransfer'])
+            .to(dataTransfer())
+            .to(function(exchange) {
+                element.querySelector('td:nth-child(2)').textContent = exchange.getHeader('name');
+                element.querySelector('td:nth-child(3)').textContent = exchange.getHeader('memo');
+                return exchange;
+            })
+            .to(log({
+                'header': true
+            }))
+    </script>
+</body>
+
+</html>

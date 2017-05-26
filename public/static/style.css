@@ -31,6 +31,10 @@ a {
     table-layout: fixed;
 }
 
+#mainTable tbody td {
+    position: relative;
+}
+
 #mainTable tr td:nth-child(1),
 #mainTable tr th:nth-child(1),
 #mainTable tr th:nth-child(4),

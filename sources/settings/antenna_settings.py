@@ -18,6 +18,25 @@ span_option = [
     {'key': 'complete', 'text': '完了'}
 ]
 
+span_sort_score = {
+    'daily': '01',
+    'w_mon': '02',
+    'w_tue': '02',
+    'w_wed': '02',
+    'w_thu': '02',
+    'w_fri': '02',
+    'w_sat': '02',
+    'w_sun': '02',
+    'priority': '03',
+    'once': '04',
+    'every_1d': '05',
+    'every_2d': '06',
+    'every_3d': '07',
+    'every_10d': '08',
+    'sometime': '09',
+    'complete': '10'
+}
+
 span_to_weekday = {
     'w_mon': 0,
     'w_tue': 1,
