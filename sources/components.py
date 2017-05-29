@@ -1,6 +1,7 @@
 from endpoints import Endpoints
 from evaluator import evaluate_expression, body, header
 import json
+from utility.datetime_util import get_now
 
 
 def direct(params):
@@ -211,6 +212,14 @@ def markdown(params=None):
     return processor
 
 
+jinja2_env = {
+    'now': get_now("%Y/%m/%d %H:%M"),
+    'context': {
+        'path': '/context'
+    }
+}
+
+
 def jinja2_(params):
     from jinja2 import Environment, FileSystemLoader, select_autoescape
     try:
@@ -227,9 +236,7 @@ def jinja2_(params):
         data = evaluate_expression(data_expression, exchange)
         if 'util' in params:
             data.update({'util': params.get('util')()})
-        if 'env' in params:
-            data['env'] = json.dumps(
-                evaluate_expression(params.get('env'), exchange))
+        data['env'] = json.dumps(evaluate_expression(jinja2_env, exchange))
         exchange.set_body(template.render(data))
         exchange.set_header('content-type', 'text/html')
         return exchange

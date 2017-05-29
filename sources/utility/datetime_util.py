@@ -40,3 +40,10 @@ def calc_date_from_span(item, prev=False):
 
 def now_str(fmt):
     return datetime.now(pytz.timezone('Asia/Tokyo')).strftime(fmt)
+
+
+def get_now(fmt):
+    def now_func(exchange):
+        return now_str(fmt)
+
+    return now_func

@@ -64,11 +64,27 @@ function request(uri, headers) {
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4 && xhr.status === 200) {
                 exchange.update(JSON.parse(xhr.responseText));
-                func()
+                func();
             }
         };
         xhr.send(exchange.toJson());
-    }
+    };
+}
+
+function server() {
+    return function(exchange, func) {
+        console.log('request for ' + exchange.getHeader('__context_name') + ' ...');
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", env.context.path, true);
+        xhr.setRequestHeader("Content-type", "application/json");
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                exchange.update(JSON.parse(xhr.responseText));
+                func();
+            }
+        };
+        xhr.send(exchange.toJson());
+    };
 }
 
 function buttonEnable(elements, bool) {

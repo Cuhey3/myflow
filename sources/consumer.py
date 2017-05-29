@@ -88,20 +88,43 @@ class Aiohttp(Consumer):
         web.run_app(self.__web_application, host='0.0.0.0', port=port)
 
 
-class Client(Consumer):
-    def __init__(self, uri):
-        super().__init__(None, self)
+class Context(Consumer):
+    __context_dict = None
+    __context_id_name = None
 
-        async def handle(request):
-            obj = await request.json()
-            exchange = Exchange(obj['body'], obj['header'])
-            for key in request.rel_url.query:
-                exchange.set_header(key, request.rel_url.query.get(key))
-            exchange = await self.produce(exchange)
-            return web.Response(
-                text=exchange.to_json(), content_type='application/json')
+    def __init__(self, context_param=None):
+        if Context.__context_dict is None:
+            Context.__context_dict = {}
+            Context.__context_id_name = {}
 
-        Aiohttp().application().router.add_post(uri, handle)
+            async def handle(request):
+                obj = await request.json()
+                exchange = Exchange(obj['body'], obj['header'])
+                context_name = exchange.get_header(
+                    '__context_name'
+                ) or Context.__context_id_name[exchange.get_header(
+                    '__context_id')]
+                print(context_name)
+                exchange = await Context.__context_dict.get(context_name
+                                                            ).produce(exchange)
+                return web.Response(
+                    text=exchange.to_json(), content_type='application/json')
+
+            Aiohttp().application().router.add_post(self.path(), handle)
+
+        if context_param:
+            super().__init__(None, self)
+            if isinstance(context_param, dict):
+                Context.__context_dict[context_param.get('name')] = self
+                Context.__context_id_name = {**Context.__context_id_name, context_param['id']: context_param('name')}
+            elif isinstance(context_param, list):
+                for name in context_param:
+                    Context.__context_dict[name] = self
+            elif isinstance(context_param, str):
+                Context.__context_dict[context_param] = self
+
+    def path(self):
+        return '/context'
 
 
 class Composer(Consumer):

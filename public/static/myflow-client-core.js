@@ -48,6 +48,9 @@ function Exchange(body, header, element) {
         obj = JSON.parse(jsonText);
         return new Exchange(obj['body'], obj['header'], element);
     }
+    Exchange.prototype.setContextName = function(contextName) {
+        this.setHeader('__context_name', contextName);
+    }
 }
 
 function Producer(processor, consumer) {
@@ -57,6 +60,22 @@ function Producer(processor, consumer) {
 }
 Producer.prototype.to = function(processor) {
     this.next_producer = new Producer(processor, this.consumer);
+    return this.next_producer;
+};
+
+Producer.prototype.contextId = function(id) {
+    this.next_producer = new Producer(function(exchange) {
+        exchange.setHeader('__context_id', id);
+        return exchange;
+    }, this.consumer);
+    return this.next_producer;
+};
+
+Producer.prototype.contextName = function(name) {
+    this.next_producer = new Producer(function(exchange) {
+        exchange.setHeader('__context_name', name);
+        return exchange;
+    }, this.consumer);
     return this.next_producer;
 };
 

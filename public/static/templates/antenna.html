@@ -39,7 +39,6 @@
                 <td colspan="2">
                     <input type="button" value="作成" id='createButton' disabled>
                     <input type="button" value="クリア" id='clearButton' disabled>
-                    <input type="hidden" data-header="id">
                     <input type="hidden" data-header="current">
                 </td>
             </tr>
@@ -154,6 +153,11 @@
                 event.dataTransfer.setData('application/json', exchange.toJson());
             }
         });
+        var readId = function(exchange) {
+            var reader = trReader.create(exchange);
+            reader.updateExchange('id');
+            return exchange;
+        };
         var buttons = selectAll('input[type=button]');
         var options = new Options(byid('modal'));
 
@@ -171,46 +175,48 @@
                 }
             })
 
-        new Event('onclick', selectAll('a[href="javascript:void(0)"]:not([id])'))
+        new Event('onclick', selectAll('tr:not(.future) a[href="javascript:void(0)"]'))
+            .contextName('click-current-item') // dummy context name
             .to(function(exchange) {
                 var reader = trReader.create(exchange);
                 reader.updateExchange('id');
-                exchange.setHeader('method', 'update');
                 if (reader.read('finish')) {
                     if (window.confirm('このタスクを完了しますか？')) {
-                        exchange.setHeader('finish', 'true');
+                        exchange.setContextName('click-current-item-to-finish')
                         return exchange;
                     }
                 }
                 else {
-                    if (reader.read('future')) {
-                        exchange.setHeader('current', 'true');
-                    }
+                    exchange.setContextName('click-current-item-no-finish')
                     return exchange;
                 }
             })
-            .to(direct('antenna-crud'));
+            .to(direct('common-server-request'));
+
+        new Event('onclick', selectAll('tr.future a[href="javascript:void(0)"]'))
+            .contextName('click-future-item')
+            .to(readId)
+            .to(direct('common-server-request'));
 
         new Event('onclick', selectAll('.future a.external'))
+            .contextName('click-future-external-link')
             .to(function(exchange) {
-
                 var reader = trReader.create(exchange);
                 if (!reader.read('completed')) {
                     reader.updateExchange('id');
-                    exchange.setHeader('current', 'true');
-                    exchange.setHeader('method', 'update');
                     return exchange;
                 }
             })
-            .to(direct('antenna-crud'));
+            .to(direct('common-server-request'));
 
         new Event('onclick', collectNthChild(selectAll('#mainTable tbody tr'), 'th', 0))
+            .contextName('get-item-detail')
             .to(function(exchange) {
                 trReader.create(exchange).updateExchange(['past', 'next', 'name', 'url', 'memo', 'id', 'span']);
                 return exchange;
             })
             .to(modal(byid('loading-modal'), 'open'))
-            .task(request('/antenna-item'))
+            .task(server())
             .to(modal(byid('loading-modal'), 'close'))
             .to(modal(byid('modal'), 'open'));
 
@@ -223,51 +229,48 @@
             })
             .to(modal(byid('modal'), 'close'));
 
-
         new Event('onclick', selectAll('input[value="クリア"]'))
             .to(exchangeToForm(byid('createForm')))
 
         new Event('onclick', selectAll('input[value="更新"]'))
+            .contextName('update-item') // dummy context name
             .to(loadElement(byid('modal'), {
                 'method': 'update'
             }))
-            .to(direct('antenna-crud'));
-
-        new Event('onclick', selectAll('input[value="保留"], input[value="削除"]'))
-            .to(buttonEnable(buttons, false))
             .to(function(exchange) {
-                var method = exchange.getElement().value === '保留' ? 'update' : 'delete';
-                var reader = trReader.create(exchange);
-                reader.updateExchange('id');
-                exchange.setHeader('method', method);
-                if (method === 'update') {
-                    exchange.setHeader('reserve', 'true');
-                }
-                return exchange;
-            })
-            .to(function(exchange) {
-                if (exchange.getHeader('method') === 'delete') {
-                    if (window.confirm(exchange.getHeader('id') + '番を削除します。')) {
-                        return exchange;
-                    }
-                    else {
-                        buttonEnable(buttons)(exchange)
-                    }
+                if (exchange.getHeader('span') === 'complete') {
+                    exchange.setContextName('update-item-to-finish');
                 }
                 else {
-                    return exchange;
+                    exchange.setContextName('update-item-no-finish');
                 }
-            })
-            .to(direct('antenna-crud'))
-
-        new Event('onclick', selectAll('input[value="作成"]'))
-            .to(buttonEnable(buttons, false))
-            .to(loadElement(byid('createForm')))
-            .to(function(exchange) {
-                delete exchange.getHeaders()['id'];
-                exchange.setHeader('method', 'create');
                 return exchange;
             })
+            .to(direct('common-server-request'));
+
+        new Event('onclick', selectAll('input[value="保留"]'))
+            .contextName('reserve-item')
+            .to(buttonEnable(buttons, false))
+            .to(readId)
+            .to(direct('common-server-request'));
+
+        new Event('onclick', selectAll('input[value="削除"]'))
+            .contextName('delete-item')
+            .to(buttonEnable(buttons, false))
+            .to(readId)
+            .to(function(exchange) {
+                if (window.confirm(exchange.getHeader('id') + '番を削除します。')) {
+                    return exchange;
+                }
+                else {
+                    buttonEnable(buttons)(exchange)
+                }
+            }).to(direct('common-server-request'));
+
+        new Event('onclick', selectAll('input[value="作成"]'))
+            .contextName('create-item')
+            .to(buttonEnable(buttons, false))
+            .to(loadElement(byid('createForm')))
             .to(function(exchange) {
                 var name = exchange.getHeader('name');
                 if (!name) {
@@ -277,11 +280,10 @@
                 else {
                     return exchange;
                 }
-            })
-            .to(direct('antenna-crud'))
+            }).to(direct('common-server-request'));
 
-        new RouteId('antenna-crud')
-            .task(request('/antenna-exchange'))
+        new RouteId('common-server-request')
+            .task(server())
             .to(pageReload());
     </script>
 </body>
