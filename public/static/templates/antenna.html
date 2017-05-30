@@ -9,7 +9,7 @@
 <body>
     <h2>いろいろ巡回ツール</h2>
     <p>今日のタスク: {{util.count(items, util.is_current_uncomplete)}}<br>その他の未完了タスク: {{util.count(items, util.is_future_uncomplete)}}</p>
-    <p><a href="javascript:void(0)" id="oepn-create-modal">新規作成</a></p>
+    <p><a href="javascript:void(0)" id="oepn-create-modal">新規作成</a> | <a href="javascript:void(0)" id="oepn-login-modal">ログイン</a></p>
     <table id="mainTable">
         <thead>
             <tr>
@@ -95,12 +95,17 @@
                 </tr>
             </table>
             <input type="button" value="更新">
+            <input type="button" value="コピー">
+            <input type="button" value="保留">
+            <input type="button" value="削除">
+            <input type="button" value="完了">
             <a href="javascript:void(0)" id="detail-modal-close">閉じる</a>
         </div>
     </div>
     <div id="create-modal" class="modal">
         <div id="modal-content">
             <form id='createForm'>
+                <h2>タスクの新規作成</h2>
                 <table>
                     <tr>
                         <th>タイトル</th>
@@ -131,7 +136,6 @@
                         <td colspan="2">
                             <input type="button" value="作成" id='createButton' disabled>
                             <input type="button" value="クリア" id='clearButton' disabled>
-                            <input type="hidden" data-header="current">
                         </td>
                     </tr>
                 </table>
@@ -159,6 +163,7 @@
                 event.dataTransfer.setData('application/json', exchange.toJson());
             }
         });
+
         var readId = function(exchange) {
             var reader = trReader.create(exchange);
             reader.updateExchange('id');
@@ -236,6 +241,7 @@
             })
             .to(modal(byid('loading-modal'), 'open'))
             .task(server())
+            .contextName('open-detail-modal')
             .to(modal(byid('loading-modal'), 'close'))
             .to(modal(byid('detail-modal'), 'open'));
 
@@ -248,35 +254,53 @@
             })
             .to(modal(byid('detail-modal'), 'close'));
 
-        new Event('onclick', selectAll('input[value="クリア"]'))
+        new Event('onclick', selectOne('input[value="クリア"]'))
+            .contextName('clear-create-form')
+            .to(log())
             .to(exchangeToForm(byid('createForm')))
 
-        new Event('onclick', selectAll('input[value="更新"]'))
+        new Routes([
+                new Event('onclick', selectOne('#detail-modal input[value="完了"]'))
+                .to(function(exchange) {
+                    byid('detail-modal').querySelector('[data-header="span"]').value = "complete";
+                    return exchange;
+                }),
+                new Event('onclick', selectOne('#detail-modal input[value="更新"]'))
+            ])
             .contextName('update-item') // dummy context name
-            .to(loadElement(byid('detail-modal'), {
-                'method': 'update'
-            }))
+            .to(loadElement(byid('detail-modal')))
             .to(function(exchange) {
                 if (exchange.getHeader('span') === 'complete') {
-                    exchange.setContextName('update-item-to-finish');
+                    if (window.confirm('このタスクを完了しますか？')) {
+                        exchange.setContextName('update-item-to-finish');
+                        return exchange;
+                    }
                 }
                 else {
                     exchange.setContextName('update-item-no-finish');
+                    return exchange;
                 }
-                return exchange;
             })
             .to(direct('common-server-request'));
 
-        new Event('onclick', selectAll('input[value="保留"]'))
+        new Routes([
+                new Event('onclick', selectAll('td input[value="保留"]'))
+                .to(readId),
+                new Event('onclick', selectOne('#detail-modal input[value="保留"]'))
+                .to(loadElement(byid('detail-modal'), ['id']))
+            ])
             .contextName('reserve-item')
             .to(buttonEnable(buttons, false))
-            .to(readId)
             .to(direct('common-server-request'));
 
-        new Event('onclick', selectAll('input[value="削除"]'))
+        new Routes([
+                new Event('onclick', selectAll('td input[value="削除"]'))
+                .to(readId),
+                new Event('onclick', selectOne('#detail-modal input[value="削除"]'))
+                .to(loadElement(byid('detail-modal'), ['id']))
+            ])
             .contextName('delete-item')
             .to(buttonEnable(buttons, false))
-            .to(readId)
             .to(function(exchange) {
                 if (window.confirm(exchange.getHeader('id') + '番を削除します。')) {
                     return exchange;
@@ -286,10 +310,14 @@
                 }
             }).to(direct('common-server-request'));
 
-        new Event('onclick', selectAll('input[value="作成"]'))
+        new Routes([
+                new Event('onclick', selectOne('input[value="作成"]'))
+                .to(loadElement(byid('createForm'))),
+                new Event('onclick', selectOne('#detail-modal input[value="コピー"]'))
+                .to(loadElement(byid('detail-modal'), ['name', 'url', 'memo', 'span']))
+            ])
             .contextName('create-item')
             .to(buttonEnable(buttons, false))
-            .to(loadElement(byid('createForm')))
             .to(function(exchange) {
                 var name = exchange.getHeader('name');
                 if (!name) {
@@ -299,7 +327,8 @@
                 else {
                     return exchange;
                 }
-            }).to(direct('common-server-request'));
+            })
+            .to(direct('common-server-request'));
 
         new RouteId('common-server-request')
             .task(server())

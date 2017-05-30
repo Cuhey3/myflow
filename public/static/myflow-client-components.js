@@ -9,9 +9,10 @@ function direct(routeId) {
 function formToExchange(formElement) {
     return function(exchange) {
         exchange = exchange || new Exchange();
-        toArray(formElement.querySelectorAll('[name]'))
+        toArray(formElement.querySelectorAll('[data-header], [data-header-to]'))
             .forEach(function(element) {
-                exchange.setHeader([element.name], element.value);
+                var key = element.getAttribute('data-header') || element.getAttribute('data-header-to');
+                exchange.setHeader(key, element.value);
             });
         return exchange;
     };
@@ -19,9 +20,10 @@ function formToExchange(formElement) {
 
 function exchangeToForm(formElement) {
     return function(exchange) {
-        toArray(formElement.querySelectorAll('[name]'))
+        toArray(formElement.querySelectorAll('[data-header], [data-header-from]'))
             .forEach(function(element) {
-                var value = exchange.getHeader(element.name, '');
+                var key = element.getAttribute('data-header') || element.getAttribute('data-header-from');
+                var value = exchange.getHeader(key, '');
                 if (element.tagName.toLowerCase() == 'select') {
                     element.selectedIndex = value || 0;
                 }
@@ -127,7 +129,7 @@ function delay(t) {
 function cookie(action, key, value) {
     if (action === 'get') {
         return function(exchange) {
-            var v = new CookieObject().get(key, value)
+            var v = new CookieObject().get(key, value);
             exchange.setHeader(key, v);
             return exchange
         }
@@ -187,20 +189,34 @@ function modal(modalElement, action) {
     }
 }
 
-function loadElement(element, headers) {
+function loadElement(element, loadFields) {
+    var isTargetField;
+    if (Array.isArray(loadFields) && loadFields.length > 0) {
+        var obj = {};
+        loadFields.forEach(function(field) {
+            obj[field] = true;
+        });
+        isTargetField = function(key) {
+            return obj[key];
+        }
+    }
+    else {
+        isTargetField = function(key) {
+            return true;
+        }
+    }
 
     return function(exchange) {
-        if (headers) {
-            exchange.setHeaders(headers);
-        }
         toArray(element.querySelectorAll('[data-header], [data-header-to]')).forEach(function(node) {
             var tagName = node.tagName.toLocaleLowerCase();
-            var key = node.getAttribute('data-header') || node.getAttribute('data-header-to')
-            if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
-                exchange.setHeader(key, node.value);
-            }
-            else {
-                exchange.setHeader(key, node.textContent);
+            var key = node.getAttribute('data-header') || node.getAttribute('data-header-to');
+            if (isTargetField(key)) {
+                if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+                    exchange.setHeader(key, node.value);
+                }
+                else {
+                    exchange.setHeader(key, node.textContent);
+                }
             }
         })
         return exchange;

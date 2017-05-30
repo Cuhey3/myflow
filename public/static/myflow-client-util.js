@@ -24,6 +24,10 @@ function selectAll(selector) {
     return toArray(elements);
 }
 
+function selectOne(selector) {
+    return document.querySelector(selector);
+}
+
 function getOr(object, attr, value) {
     if (object && attr in object) {
         return object[attr];
@@ -76,7 +80,7 @@ function collectNthChild(elements, selector, nth) {
 
 function CookieObject() {
     if (!CookieObject.obj) {
-        console.log('cookie object initialized.')
+        console.log('cookie object initialized.');
         if (document.cookie && document.cookie.startsWith('%7B')) {
             CookieObject.obj = JSON.parse(decodeURI(document.cookie.split(' ')[0]));
         }

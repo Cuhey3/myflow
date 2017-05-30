@@ -66,6 +66,7 @@ class Aiohttp(Consumer):
             super().__init__(None, self)
 
             async def handle(request):
+                ##print(request.cookies)
                 header = {}
                 for key in request.match_info:
                     header[key] = request.match_info.get(key)
@@ -74,7 +75,9 @@ class Aiohttp(Consumer):
                 exchange = await self.produce(Exchange({}, header))
                 text = exchange.get_body()
                 content_type = exchange.get_header('content-type')
-                return web.Response(text=text, content_type=content_type)
+                resp = web.Response(text=text, content_type=content_type)
+                ##resp.set_cookie('foo', 'bar')
+                return resp
 
             self.application().router.add_get(uri, handle)
 

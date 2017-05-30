@@ -58,6 +58,7 @@ function Producer(processor, consumer) {
     this.processor = processor;
     this.consumer = consumer;
 }
+
 Producer.prototype.to = function(processor) {
     this.next_producer = new Producer(processor, this.consumer);
     return this.next_producer;
@@ -108,4 +109,29 @@ Producer.prototype.produce = function(exchange) {
         }
         return exchange;
     }
+};
+
+function Routes(routes) {
+    this.routes = routes;
+}
+
+Routes.prototype.to = function(processor) {
+    for (var i = 0; i < this.routes.length; i++) {
+        var route = this.routes[i];
+        route.next_producer = new Producer(processor, route.consumer)
+        this.routes[i] = route.next_producer;
+    }
+    return this;
+};
+
+Routes.prototype.contextName = function(name) {
+    for (var i = 0; i < this.routes.length; i++) {
+        var route = this.routes[i];
+        route.next_producer = new Producer(function(exchange) {
+            exchange.setHeader('__context_name', name);
+            return exchange;
+        }, route.consumer);
+        this.routes[i] = route.next_producer;
+    }
+    return this;
 };
