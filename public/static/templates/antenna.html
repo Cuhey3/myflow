@@ -8,43 +8,8 @@
 
 <body>
     <h2>いろいろ巡回ツール</h2>
-    <form id='createForm'>
-        <table>
-            <tr>
-                <th>タイトル</th>
-                <td><input type="text" data-header="name"></input>
-                </td>
-            </tr>
-            <tr>
-                <th>URL</th>
-                <td><input type="text" data-header="url"></input>
-                </td>
-            </tr>
-            <tr>
-                <th>メモ</th>
-                <td><input type="text" data-header="memo"></input>
-                </td>
-            </tr>
-            <tr>
-                <th>周期</th>
-                <td>
-                    <select data-header="span">
-                        {% for span_item in span_list %}
-                        <option value="{{span_item.key}}">{{span_item.text}}</option>
-                        {% endfor %}
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2">
-                    <input type="button" value="作成" id='createButton' disabled>
-                    <input type="button" value="クリア" id='clearButton' disabled>
-                    <input type="hidden" data-header="current">
-                </td>
-            </tr>
-        </table>
-    </form>
     <p>今日のタスク: {{util.count(items, util.is_current_uncomplete)}}<br>その他の未完了タスク: {{util.count(items, util.is_future_uncomplete)}}</p>
+    <p><a href="javascript:void(0)" id="oepn-create-modal">新規作成</a></p>
     <table id="mainTable">
         <thead>
             <tr>
@@ -78,7 +43,7 @@
                 {% endfor %}
         </tbody>
     </table>
-    <div id="modal">
+    <div id="detail-modal" class="modal">
         <div id="modal-content">
             <h2><span data-header="name"></span> の詳細</h2>
             <table>
@@ -122,15 +87,56 @@
                 </tr>
                 <tr>
                     <th>メモ</th>
-                    <td><textarea data-header="memo"></textarea></td>
+                    <td><textarea data-header="memo" rows="3"></textarea></td>
                 </tr>
                 <tr>
                     <th>決定事項</th>
-                    <td><textarea data-header="decide"></textarea></td>
+                    <td><textarea data-header="decide" rows="3"></textarea></td>
                 </tr>
             </table>
             <input type="button" value="更新">
-            <a href="javascript:void(0)" id="modal-close">閉じる</a>
+            <a href="javascript:void(0)" id="detail-modal-close">閉じる</a>
+        </div>
+    </div>
+    <div id="create-modal" class="modal">
+        <div id="modal-content">
+            <form id='createForm'>
+                <table>
+                    <tr>
+                        <th>タイトル</th>
+                        <td><input type="text" data-header="name"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>URL</th>
+                        <td><input type="text" data-header="url"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>メモ</th>
+                        <td><textarea data-header="memo" rows="3"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>周期</th>
+                        <td>
+                            <select data-header="span">
+                                {% for span_item in span_list %}
+                                <option value="{{span_item.key}}">{{span_item.text}}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <input type="button" value="作成" id='createButton' disabled>
+                            <input type="button" value="クリア" id='clearButton' disabled>
+                            <input type="hidden" data-header="current">
+                        </td>
+                    </tr>
+                </table>
+            </form>
+            <a href="javascript:void(0)" id="create-modal-close">閉じる</a>
         </div>
     </div>
     <div id="loading-modal">
@@ -171,9 +177,22 @@
             .to(function(exchange) {
                 if (exchange.getHeader('keyCode') == 27) {
                     byid('loading-modal').style.visibility = 'hidden';
-                    byid('modal').style.visibility = 'hidden';
+                    byid('detail-modal').style.visibility = 'hidden';
+                    byid('create-modal').style.visibility = 'hidden';
                 }
             })
+
+        new Event('onclick', byid('oepn-create-modal'))
+            .to(modal(byid('create-modal'), 'open'))
+
+        new Event('onclick', selectAll('#create-modal, #create-modal-close'))
+            .to(function(exchange) {
+                var id = exchange.getElement().id;
+                if (id === 'create-modal' || id === 'create-modal-close') {
+                    return exchange;
+                }
+            })
+            .to(modal(byid('create-modal'), 'close'));
 
         new Event('onclick', selectAll('tr:not(.future) a[href="javascript:void(0)"]'))
             .contextName('click-current-item') // dummy context name
@@ -218,23 +237,23 @@
             .to(modal(byid('loading-modal'), 'open'))
             .task(server())
             .to(modal(byid('loading-modal'), 'close'))
-            .to(modal(byid('modal'), 'open'));
+            .to(modal(byid('detail-modal'), 'open'));
 
-        new Event('onclick', selectAll('#modal, #modal-close'))
+        new Event('onclick', selectAll('#detail-modal, #detail-modal-close'))
             .to(function(exchange) {
                 var id = exchange.getElement().id;
-                if (id === 'modal' || id === 'modal-close') {
+                if (id === 'detail-modal' || id === 'detail-modal-close') {
                     return exchange;
                 }
             })
-            .to(modal(byid('modal'), 'close'));
+            .to(modal(byid('detail-modal'), 'close'));
 
         new Event('onclick', selectAll('input[value="クリア"]'))
             .to(exchangeToForm(byid('createForm')))
 
         new Event('onclick', selectAll('input[value="更新"]'))
             .contextName('update-item') // dummy context name
-            .to(loadElement(byid('modal'), {
+            .to(loadElement(byid('detail-modal'), {
                 'method': 'update'
             }))
             .to(function(exchange) {
@@ -283,6 +302,7 @@
             }).to(direct('common-server-request'));
 
         new RouteId('common-server-request')
+            .to(modal(byid('loading-modal'), 'open'))
             .task(server())
             .to(pageReload());
     </script>

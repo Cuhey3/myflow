@@ -86,7 +86,7 @@ a {
     width: 97%;
 }
 
-#modal {
+.modal {
     visibility: hidden;
     position: fixed;
     background-color: rgba(50, 50, 50, 0.7);
