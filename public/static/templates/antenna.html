@@ -302,7 +302,6 @@
             }).to(direct('common-server-request'));
 
         new RouteId('common-server-request')
-            .to(modal(byid('loading-modal'), 'open'))
             .task(server())
             .to(pageReload());
     </script>
