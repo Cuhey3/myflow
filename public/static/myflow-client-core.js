@@ -35,21 +35,22 @@ function Exchange(body, header, element) {
     };
 
     Exchange.prototype.setElement = function(element) {
-        this.element = element;
+        self.element = element;
     };
 
     Exchange.prototype.update = function(obj) {
-        this.internalObject = obj
-    }
+        self.internalObject.body = obj.body;
+        self.internalObject.header = obj.header;
+    };
     Exchange.prototype.toJson = function() {
-        return JSON.stringify(this.internalObject);
+        return JSON.stringify(self.internalObject);
     };
     Exchange.fromJson = function(jsonText, element) {
-        obj = JSON.parse(jsonText);
+        var obj = JSON.parse(jsonText);
         return new Exchange(obj['body'], obj['header'], element);
     }
     Exchange.prototype.setContextName = function(contextName) {
-        this.setHeader('__context_name', contextName);
+        self.setHeader('__context_name', contextName);
     }
 }
 

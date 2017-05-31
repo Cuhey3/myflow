@@ -49,10 +49,10 @@ def sort_func(exchange):
 
 
 async def simple_update_item(exchange):
-    id_ = exchange.get_header('id')
+    id_ = int(exchange.get_header('id'))
     now = now_str("%Y/%m/%d")
     for item in exchange.get_body():
-        if str(item['id']) == id_:
+        if item['id'] == id_:
             exchange_span = exchange.get_header('span')
             if item['span'] != exchange_span:
                 item['span'] = exchange_span
@@ -66,9 +66,9 @@ async def simple_update_item(exchange):
 
 def simple_update_next(prev=False):
     async def func(exchange):
-        id_ = exchange.get_header('id')
+        id_ = int(exchange.get_header('id'))
         for item in exchange.get_body():
-            if str(item['id']) == id_:
+            if item['id'] == id_:
                 calc_date_from_span(item, prev)
         return exchange
 
@@ -76,18 +76,18 @@ def simple_update_next(prev=False):
 
 
 async def simple_update_time(exchange):
-    id_ = exchange.get_header('id')
+    id_ = int(exchange.get_header('id'))
     for item in exchange.get_body():
-        if str(item['id']) == id_:
+        if item['id'] == id_:
             item['past'] = datetime.now(
                 pytz.timezone('Asia/Tokyo')).strftime("%Y/%m/%d %H:%M")
     return exchange
 
 
 async def complete_item(exchange):
-    id_ = exchange.get_header('id')
+    id_ = int(exchange.get_header('id'))
     for item in exchange.get_body():
-        if str(item['id']) == id_:
+        if item['id'] == id_:
             item['past'] = datetime.now(
                 pytz.timezone('Asia/Tokyo')).strftime("%Y/%m/%d %H:%M")
             item['span'] = 'complete'
@@ -98,10 +98,9 @@ async def complete_item(exchange):
 
 async def simple_update_success_count(exchange):
     now = now_str("%Y/%m/%d")
-    id_ = exchange.get_header('id')
-    print('here')
+    id_ = int(exchange.get_header('id'))
     for item in exchange.get_body():
-        if str(item['id']) == id_:
+        if item['id'] == id_:
             if now == item.get('next', ''):
                 if now != item.get('prev_sc', ''):
                     cnt_sc = item.get('cnt_sc', 0)
@@ -114,9 +113,9 @@ async def simple_update_success_count(exchange):
 
 
 async def simple_update_success_count_to_none(exchange):
-    id_ = exchange.get_header('id')
+    id_ = int(exchange.get_header('id'))
     for item in exchange.get_body():
-        if str(item['id']) == id_:
+        if item['id'] == id_:
             if 'cnt_sc' in item:
                 del item['cnt_sc']
             if 'prev_sc' in item:
@@ -135,10 +134,20 @@ async def simple_update_success_count_to_none(exchange):
     }))
 ) #yapf: disable
 
+async def merge_item(exchange):
+    id_ = int(exchange.get_header('id', '-1'))
+    for index, item in enumerate(exchange.get_body()):
+        if item['id'] == id_:
+            exchange.get_headers().update(item)
+            exchange.set_header('index', index)
+            break
+    exchange.set_body('success')
+    return exchange
+
 (RouteId('common_post_processing')
     .process(sort_func)
     .to(cache_set_processor)
-    .process(lambda ex: ex.set_body('success'))
+    .to(merge_item)
 ) #yapf: disable
 
 (Context('create-item')
@@ -181,7 +190,7 @@ async def simple_update_success_count_to_none(exchange):
     .to(cache_get_processor)
     .process(lambda ex:
         [item for item in ex.get_body()
-            if str(item['id']) != ex.get_header('id')])
+            if item['id'] != int(ex.get_header('id'))])
     .to(direct('common_post_processing'))
 ) #yapf: disable
 
@@ -189,7 +198,7 @@ async def simple_update_success_count_to_none(exchange):
     .to(cache_get_processor)
     .process(lambda ex: ex.set_headers(
         next((item for item in ex.get_body()
-              if str(item['id']) == ex.get_header('id')), None)))
+              if item['id'] == int(ex.get_header('id'))), None)))
     .process(lambda ex: ex.set_body('success'))
 ) #yapf: disable
 
