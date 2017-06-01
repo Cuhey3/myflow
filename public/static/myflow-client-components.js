@@ -90,10 +90,18 @@ function server() {
 }
 
 function buttonEnable(elements, bool) {
-    if (!elements.forEach) {
+    var disable = bool === false;
+    if (typeof elements === 'string') {
+        return function(exchange) {
+            selectAll(elements).forEach(function(element) {
+                element.disabled = disable
+            });
+            return exchange;
+        }
+    }
+    else if (!elements.forEach) {
         elements = [elements];
     }
-    var disable = bool === false;
     return function(exchange) {
         elements.forEach(function(element) {
             element.disabled = disable
@@ -185,6 +193,14 @@ function modal(modalElement, action) {
                 modalElement.style.visibility = 'hidden';
                 return exchange;
             }
+        }
+    }
+    else if (action === 'all-close') {
+        return function(exchange) {
+            toArray(document.querySelectorAll('.modal')).forEach(function(element) {
+                element.style.visibility = 'hidden';
+            });
+            return exchange;
         }
     }
 }

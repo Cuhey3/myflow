@@ -66,6 +66,17 @@ function EventGroup() {
             element[key] = dict[key];
         }
     };
+    EventGroup.prototype.setEvents = function(element) {
+        var keySelector = Object.keys(EventGroup.dict);
+        keySelector.forEach(function(selector) {
+            var group = EventGroup.dict[selector];
+            toArray((element.content || element).querySelectorAll(selector)).forEach(function(el) {
+                Object.keys(group).forEach(function(eventName) {
+                    el[eventName] = group[eventName];
+                });
+            })
+        });
+    }
 }
 
 function RouteId(routeId) {
@@ -90,9 +101,14 @@ Reply.prototype = Object.create(Consumer.prototype, {
     }
 });
 
-function Event(eventName, elements, attributes, groupName) {
+function Event(eventName, elements, attributes) {
     Consumer.call(this, null, this);
     var consumer = this;
+    var groupName = false;
+    if (typeof elements === 'string') {
+        groupName = elements;
+        elements = selectAll(elements);
+    }
     if (!elements.forEach) {
         elements = [elements];
     }

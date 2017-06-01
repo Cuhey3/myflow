@@ -134,3 +134,26 @@ function ElementReader(readerCreator) {
         });
     };
 }
+
+function ExchangeToElement(template, mapping) {
+    var self = this;
+    self.template = template;
+    self.mapping = mapping;
+    ExchangeToElement.prototype.toElement = function(exchange, elementsFlag) {
+        var element = document.createElement('template');
+        element.innerHTML = self.template;
+        toArray(element.content.querySelectorAll('[data-mapping]')).forEach(function(el) {
+            var dataMappingKey = el.getAttribute('data-mapping');
+            self.mapping[dataMappingKey](exchange, el);
+            el.removeAttribute('data-mapping');
+        });
+        new EventGroup().setEvents(element);
+        if (elementsFlag) {
+            return element.content.childNodes;
+        }
+        else {
+            return element.content.firstChild;
+        }
+
+    }
+}

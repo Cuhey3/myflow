@@ -31,7 +31,7 @@
                 <td>{{item.cnt_sc}}</td>
                 <td></td>
                 <td>{{item.next or item.end}}</td>
-                <td>{% if item.span == 'complete' %}<span>{{item.name | escape}}</span>{% else %}<a href="javascript:void(0)" />{{item.name | escape}}</a>{% endif %}{% if item.url %}
+                <td>{% if item.span == 'complete' %}<span>{{item.name | escape}}</span>{% else %}<a href="javascript:void(0)">{{item.name | escape}}</a>{% endif %}{% if item.url %}
                     <a href="{{item.url}}" class="external" target="_blank"> 　</a>{% endif %}</td>
                 <td>{{item.memo}}</td>
                 <td>
@@ -155,6 +155,70 @@
     <script src='/public/static/myflow-client-components.js'></script>
     <script src='/public/static/custom-reader-writer.js'></script>
     <script>
+        var trTemplate = '<tr data-mapping="tr" class="added-tr">' +
+            '<td data-mapping="id"></td>' +
+            '<th data-mapping="span-str"></th>' +
+            '<td data-mapping="cnt_sc"></td>' +
+            '<td></td>' +
+            '<td data-mapping="next-or-end"></td>' +
+            '<td data-mapping="title"></td>' +
+            '<td data-mapping="memo"></td>' +
+            '<td data-mapping="action"></td>' +
+            '</tr>';
+        var mapping = {
+            'tr': function(exchange, element) {
+                if (exchange.getHeader('next') > env.now || exchange.getHeader('span') === 'complete') {
+                    element.classList.add('future');
+                }
+            },
+            'id': function(exchange, element) {
+                element.textContent = exchange.getHeader('id', '');
+            },
+            'span-str': function(exchange, element) {
+                var span = exchange.getHeader('span');
+                if (span) {
+                    element.textContent = (document.querySelector('option[value="' + span + '"]').textContent);
+                }
+            },
+            'cnt_sc': function(exchange, element) {
+                var cnt_sc = exchange.getHeader('cnt_sc');
+                if (cnt_sc) {
+                    element.textContent = cnt_sc;
+                }
+            },
+            'next-or-end': function(exchange, element) {
+                element.textContent = exchange.getHeader('next') || exchange.getHeader('end') || '';
+            },
+            'title': function(exchange, element) {
+                var span = exchange.getHeader('span');
+                var url = exchange.getHeader('url');
+                var html;
+                if (span === 'complete') {
+                    html = '<span>' + exchange.getHeader('name') + '<span>';
+                }
+                else {
+                    html = '<a href="javascript:void(0)">' + exchange.getHeader('name') + '</a>';
+                }
+                if (url) {
+                    html += '<a href="' + url + '" class="external" target="_blank"> 　</a>';
+                }
+                element.innerHTML = html;
+            },
+            'memo': function(exchange, element) {
+                element.textContent = exchange.getHeader('memo', '');
+            },
+            'action': function(exchange, element) {
+                var next = exchange.getHeader('next', '');
+                if (next === '' || next > env.now || exchange.getHeader('span', '') === 'complete') {
+                    element.innerHTML = '<input type="button" value="削除">'
+                }
+                else {
+                    element.innerHTML = '<input type="button" value="保留">'
+                }
+            }
+
+        };
+        //TBD for added tr
         selectAll('#mainTable tbody tr').forEach(function(element) {
             element.draggable = "true";
             element.ondragstart = function(event) {
@@ -169,7 +233,7 @@
             reader.updateExchange('id');
             return exchange;
         };
-        var buttons = selectAll('input[type=button]');
+        var buttons = 'input[type=button]';
         var options = new Options(byid('modal'));
 
         new Event('onload', window)
@@ -199,7 +263,7 @@
             })
             .to(modal(byid('create-modal'), 'close'));
 
-        new Event('onclick', selectAll('tr:not(.future) a[href="javascript:void(0)"]'))
+        new Event('onclick', 'tr:not(.future) a[href="javascript:void(0)"]')
             .contextName('click-current-item') // dummy context name
             .to(function(exchange) {
                 var reader = trReader.create(exchange);
@@ -217,12 +281,12 @@
             })
             .to(direct('common-server-request'));
 
-        new Event('onclick', selectAll('tr.future a[href="javascript:void(0)"]'))
+        new Event('onclick', 'tr.future a[href="javascript:void(0)"]')
             .contextName('click-future-item')
             .to(readId)
             .to(direct('common-server-request'));
 
-        new Event('onclick', selectAll('.future a.external'))
+        new Event('onclick', '.future a.external')
             .contextName('click-future-external-link')
             .to(function(exchange) {
                 var reader = trReader.create(exchange);
@@ -233,7 +297,7 @@
             })
             .to(direct('common-server-request'));
 
-        new Event('onclick', collectNthChild(selectAll('#mainTable tbody tr'), 'th', 0))
+        new Event('onclick', '#mainTable tbody tr th:nth-child(2), .added-tr th:nth-child(2)')
             .contextName('get-item-detail')
             .to(function(exchange) {
                 trReader.create(exchange).updateExchange(['past', 'next', 'name', 'url', 'memo', 'id', 'span']);
@@ -284,7 +348,7 @@
             .to(direct('common-server-request'));
 
         new Routes([
-                new Event('onclick', selectAll('td input[value="保留"]'))
+                new Event('onclick', 'td input[value="保留"]')
                 .to(readId),
                 new Event('onclick', selectOne('#detail-modal input[value="保留"]'))
                 .to(loadElement(byid('detail-modal'), ['id']))
@@ -294,7 +358,7 @@
             .to(direct('common-server-request'));
 
         new Routes([
-                new Event('onclick', selectAll('td input[value="削除"]'))
+                new Event('onclick', 'td input[value="削除"]')
                 .to(readId),
                 new Event('onclick', selectOne('#detail-modal input[value="削除"]'))
                 .to(loadElement(byid('detail-modal'), ['id']))
@@ -332,7 +396,28 @@
 
         new RouteId('common-server-request')
             .task(server())
-            .to(pageReload());
+            .to(function(exchange) {
+                var id = String(exchange.getHeader('id'));
+                if (id) {
+                    toArray(document.querySelectorAll('#mainTable tbody tr')).forEach(function(element) {
+                        if (element.querySelector('td').textContent == id) {
+                            element.remove();
+                        }
+                    })
+                }
+                return exchange;
+            })
+            .to(function(exchange) {
+                var ex2el = new ExchangeToElement(trTemplate, mapping);
+                var index = exchange.getHeader('index', -1) + 1;
+                if (index > 0) {
+                    document.querySelector('#mainTable tbody')
+                        .insertBefore(ex2el.toElement(exchange), document.querySelector('#mainTable tbody tr:nth-child(' + index + ')'));
+                }
+                return exchange;
+            })
+            .to(buttonEnable(buttons))
+            .to(modal({}, 'all-close'))
     </script>
 </body>
 
